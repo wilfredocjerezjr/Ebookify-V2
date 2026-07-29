@@ -596,29 +596,38 @@
       });
     }
 
-    async function getAvailableKey() {
+    async function getAvailableKeyForProvider(targetProvider) {
       const now = Date.now();
-      
-      for (const k of openRouterKeys) {
-        if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-        if (now > keyUsage[k].cooldownUntil) return { key: k, provider: 'openrouter' };
-      }
-      for (const k of groqKeys) {
-        if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-        if (now > keyUsage[k].cooldownUntil) return { key: k, provider: 'groq' };
-      }
-      for (const k of geminiKeys) {
-        if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-        let usage = keyUsage[k];
-        if (now > usage.cooldownUntil) {
-          if (now > usage.resetTime) {
-            usage.count = 0;
-            usage.resetTime = now + 60000;
+      if (targetProvider === 'openrouter') {
+        for (const k of openRouterKeys) {
+          if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
+          if (now > keyUsage[k].cooldownUntil) return { key: k, provider: 'openrouter' };
+        }
+      } else if (targetProvider === 'groq') {
+        for (const k of groqKeys) {
+          if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
+          if (now > keyUsage[k].cooldownUntil) return { key: k, provider: 'groq' };
+        }
+      } else if (targetProvider === 'gemini') {
+        for (const k of geminiKeys) {
+          if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
+          let usage = keyUsage[k];
+          if (now > usage.cooldownUntil) {
+            if (now > usage.resetTime) {
+              usage.count = 0;
+              usage.resetTime = now + 60000;
+            }
+            if (usage.count < 15) return { key: k, provider: 'gemini' };
           }
-          if (usage.count < 10) return { key: k, provider: 'gemini' };
         }
       }
       return null;
+    }
+
+    async function getAvailableKey() {
+      return (await getAvailableKeyForProvider('openrouter')) ||
+             (await getAvailableKeyForProvider('groq')) ||
+             (await getAvailableKeyForProvider('gemini'));
     }
 
     function recordGeminiUsage(key) {
@@ -1177,7 +1186,8 @@
     processBtn.addEventListener('click', async () => {
       parseApiKeys(apiKey);
       if ((!currentFile && !resumeState) || (openRouterKeys.length === 0 && groqKeys.length === 0 && geminiKeys.length === 0)) {
-        alert("Please provide a PDF file and at least one API Key.");
+        const liveBadge = document.getElementById('live-badge');
+        if (liveBadge) liveBadge.innerText = "[Notice] Please upload a PDF file and configure an API Key to proceed.";
         return;
       }
       isProcessing = true;
@@ -1281,7 +1291,9 @@
           processNextBatch();
         }
       } catch (err) {
-        alert("Error loading PDF: " + err.message);
+        console.error("PDF Load Error:", err);
+        const liveBadge = document.getElementById('live-badge');
+        if (liveBadge) liveBadge.innerText = `[Notice] Error loading PDF: ${err.message}`;
         resetState();
       }
     });
@@ -1456,11 +1468,15 @@
 
       } catch (err) {
         console.error("Batch error:", err);
-        alert(`Error processing batch ${myBatch + 1}: ${err.message}. The process is paused.`);
-        isPaused = true;
-        pauseIcon.setAttribute('data-lucide', 'play');
-        pauseText.innerText = 'Resume';
-        lucide.createIcons();
+        const noticeMsg = `[Notice] Batch ${myBatch + 1} issue (${err.message}). Retrying silently...`;
+        console.warn(noticeMsg);
+        const liveBadge = document.getElementById('live-badge');
+        if (liveBadge) liveBadge.innerText = noticeMsg;
+        
+        await new Promise(res => setTimeout(res, 3000));
+        if (!isPaused) {
+          processNextBatch();
+        }
       }
     }
 
@@ -1480,7 +1496,7 @@
     }
 
     async function callGeminiAPI(text, myBatch) {
-      const prompt = `You are a Senior Review Center Specialist, Lead Academic Author, and Doctorate-Level Educator. Synthesize uploaded text into an engaging, high-yield, interactive review ebook.
+      const fullPrompt = `You are a Senior Review Center Specialist, Lead Academic Author, and Doctorate-Level Educator. Synthesize uploaded text into an engaging, high-yield, interactive review ebook.
 
 DYNAMIC ADAPTIVE RETENTION ENGINE (95% - 100% RETENTION):
 - Dynamically analyze the density, technical depth, and critical nature of the uploaded text.
@@ -1518,119 +1534,156 @@ Text batch:
 ${text}`;
 
       let rawHtml = '';
-      let retries = 5;
-      
-      while (retries > 0) {
+      let outerRetries = 10;
+
+      while (outerRetries > 0) {
         await waitForVisibility();
-        const keyInfo = await getAvailableKey();
-        if (!keyInfo) {
-          console.warn("No available API keys. Waiting 10s for reset...");
-          await new Promise(r => setTimeout(r, 10000));
-          retries--;
-          continue;
-        }
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 18000);
+        let success = false;
         
-        try {
-          let selectedModel = '';
-          let response;
-          let data;
-          
-          if (keyInfo.provider === 'openrouter') {
-            selectedModel = openRouterModels[orModelIdx % openRouterModels.length];
-            updateLiveBadge('OpenRouter', selectedModel, myBatch);
-            response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${keyInfo.key}`
-              },
-              body: JSON.stringify({
-                model: selectedModel,
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.2
-              }),
-              signal: controller.signal
-            });
-            orModelIdx++;
-          } else if (keyInfo.provider === 'groq') {
-            selectedModel = groqModels[groqModelIdx % groqModels.length];
-            updateLiveBadge('Groq', selectedModel, myBatch);
-            response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${keyInfo.key}`
-              },
-              body: JSON.stringify({
-                model: selectedModel,
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.2
-              }),
-              signal: controller.signal
-            });
-            groqModelIdx++;
-          } else {
-            selectedModel = geminiModels[geminiModelIdx % geminiModels.length];
-            updateLiveBadge('Gemini', selectedModel, myBatch);
-            recordGeminiUsage(keyInfo.key);
-            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${keyInfo.key}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.2 }
-              }),
-              signal: controller.signal
-            });
-            geminiModelIdx++;
-          }
+        // Exact Provider Hierarchy: OpenRouter -> Groq -> Gemini
+        const providerList = ['openrouter', 'groq', 'gemini'];
 
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            const errMsg = errData.error?.message || errData.error || `API Error: ${response.status}`;
-            
-            if (response.status === 429 || response.status === 403 || String(errMsg).toLowerCase().includes('quota') || String(errMsg).toLowerCase().includes('exhausted')) {
-               console.warn(`${keyInfo.provider} rate/quota limited: ${errMsg}`);
-               setKeyCooldown(keyInfo.key);
-               rotateKey(keyInfo.provider);
-               retries--;
-               continue;
+        for (const provider of providerList) {
+          const keyInfo = await getAvailableKeyForProvider(provider);
+          if (!keyInfo) continue; // Skip to next provider if no keys available or on cooldown
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 18000);
+
+          try {
+            let selectedModel = '';
+            let response;
+            let reqPrompt = fullPrompt;
+
+            if (provider === 'openrouter') {
+              selectedModel = openRouterModels[orModelIdx % openRouterModels.length];
+              updateLiveBadge('OpenRouter', selectedModel, myBatch);
+              response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${keyInfo.key}`
+                },
+                body: JSON.stringify({
+                  model: selectedModel,
+                  messages: [{ role: 'user', content: reqPrompt }],
+                  temperature: 0.2
+                }),
+                signal: controller.signal
+              });
+              orModelIdx++;
+
+            } else if (provider === 'groq') {
+              selectedModel = groqModels[groqModelIdx % groqModels.length];
+              
+              // DYNAMIC TOKEN TRIMMING FOR GROQ:
+              // Compress system instructions for Groq if prompt length is large (>12,000 chars) to stay safely under Groq 6,000 TPM limit
+              if (reqPrompt.length > 12000) {
+                reqPrompt = `You are a Senior Review Specialist & Doctorate Educator. Synthesize text into an interactive review ebook chapter.
+
+RULES:
+- RETENTION (95%-100%): Retain ALL topics, protocols, formulas, steps, concepts. Remove zero-value fluff only.
+- IMAGE ANCHORS: Preserve ALL [[PDF_IMAGE_PAGE#_IMG#]] tags in exact relative contextual positions.
+- SCAFFOLDS: Use <div class="callout tip">🎯 High-Yield Key Takeaway</div>, <div class="callout warning">⚡ Clinical Alert</div>, <div class="card glassmorphic">🧠 Memory Mnemonic</div>, <div class="timeline">...</div>, <div class="ebook-table-wrapper"><table>...</table></div>.
+- TOOLTIPS: Wrap key terms in <mark class="smart-term" data-def="[Simple definition]" data-mnemonic="[Memory trick]">[Term Name]</mark>.
+- FORMATTING: Wrap in <div class="ebook-page-content">. Fill 85-90% vertical space. Return raw HTML only.
+
+Text batch:
+${cleanPdfText(text)}`;
+              }
+
+              updateLiveBadge('Groq', selectedModel, myBatch);
+              response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${keyInfo.key}`
+                },
+                body: JSON.stringify({
+                  model: selectedModel,
+                  messages: [{ role: 'user', content: reqPrompt }],
+                  temperature: 0.2
+                }),
+                signal: controller.signal
+              });
+              groqModelIdx++;
+
+            } else { // Gemini API - strictly standard Google AI Studio free tier
+              selectedModel = geminiModels[geminiModelIdx % geminiModels.length];
+              updateLiveBadge('Gemini Free Tier', selectedModel, myBatch);
+              recordGeminiUsage(keyInfo.key);
+              response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${keyInfo.key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: reqPrompt }] }],
+                  generationConfig: { temperature: 0.2 }
+                }),
+                signal: controller.signal
+              });
+              geminiModelIdx++;
             }
-            throw new Error(errMsg);
-          }
 
-          data = await response.json();
-          if (keyInfo.provider === 'gemini') {
-            rawHtml = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          } else {
-            rawHtml = data.choices?.[0]?.message?.content || '';
+            if (!response.ok) {
+              const errData = await response.json().catch(() => ({}));
+              const errMsg = errData.error?.message || errData.error || `HTTP ${response.status}`;
+              
+              const noticeMsg = `[Notice] ${provider.toUpperCase()} limit/error (${errMsg}). Silently switching Batch ${myBatch + 1}...`;
+              console.warn(noticeMsg);
+              const liveBadge = document.getElementById('live-badge');
+              if (liveBadge) liveBadge.innerText = noticeMsg;
+
+              setKeyCooldown(keyInfo.key);
+              rotateKey(provider);
+              continue; // Silently failover to next provider
+            }
+
+            const data = await response.json();
+            if (provider === 'gemini') {
+              rawHtml = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            } else {
+              rawHtml = data.choices?.[0]?.message?.content || '';
+            }
+
+            if (rawHtml && rawHtml.trim().length > 0) {
+              rotateKey(provider);
+              success = true;
+              break; // Success!
+            }
+
+          } catch (err) {
+            if (document.hidden) {
+              await waitForVisibility();
+              continue;
+            }
+            const errMsg = err.message || String(err);
+            const noticeMsg = `[Notice] ${provider.toUpperCase()} error (${errMsg}). Silently switching Batch ${myBatch + 1}...`;
+            console.warn(noticeMsg);
+            const liveBadge = document.getElementById('live-badge');
+            if (liveBadge) liveBadge.innerText = noticeMsg;
+
+            setKeyCooldown(keyInfo.key);
+            rotateKey(provider);
+            continue; // Failover to next provider
+          } finally {
+            clearTimeout(timeoutId);
           }
-          rotateKey(keyInfo.provider);
-          break; // success
-          
-        } catch (err) {
-          if (document.hidden) {
-             console.warn("Fetch aborted due to backgrounding, waiting for visibility to retry.");
-             await waitForVisibility();
-             continue;
-          }
-          if (err.name === 'AbortError' || err.name === 'DOMException' || String(err).toLowerCase().includes('abort')) { 
-             console.warn(`${keyInfo.provider} stalled (18s timeout). Flagging as busy and rotating.`);
-             setKeyCooldown(keyInfo.key);
-          } else { 
-             console.error("API Error with key:", keyInfo.provider, err);
-          }
-          rotateKey(keyInfo.provider);
-          retries--;
-          if (retries === 0) throw err;
-        } finally {
-          clearTimeout(timeoutId);
         }
+
+        if (success && rawHtml) {
+          break;
+        }
+
+        const waitNotice = `[Notice] Active provider limits reached. Retrying Batch ${myBatch + 1} in 5s...`;
+        console.warn(waitNotice);
+        const liveBadge = document.getElementById('live-badge');
+        if (liveBadge) liveBadge.innerText = waitNotice;
+
+        await new Promise(r => setTimeout(r, 5000));
+        outerRetries--;
       }
-      
-      if (!rawHtml) throw new Error("Failed to generate content after retries.");
+
+      if (!rawHtml) throw new Error("Failed to generate content after failover retries.");
       
       // Basic strip of markdown wrappers
       rawHtml = rawHtml.replace(/```html/gi, '').replace(/```/g, '');
