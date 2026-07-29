@@ -1,0 +1,634 @@
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {} }
+    }
+  </script>
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- PDF.js via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
+  <!-- StPageFlip via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+
+  <style>
+    /* Premium Ebook Styling */
+    .ebook-page-content {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 2rem;
+      background: #0f172a; /* dark slate */
+      color: #f8fafc;
+      height: 100%;
+      overflow-y: hidden; /* StPageFlip pages shouldn't scroll, but content can be clamped or scaled */
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+    .ebook-page-content h1, .ebook-page-content h2, .ebook-page-content h3 { color: #f8fafc; margin-top: 1em; margin-bottom: 0.5em; font-weight: 800; letter-spacing: -0.025em; }
+    .ebook-page-content p { margin-bottom: 1em; line-height: 1.6; font-size: 1rem; color: #cbd5e1; }
+    .ebook-page-content ul, .ebook-page-content ol { margin-bottom: 1em; padding-left: 1.5em; color: #cbd5e1; line-height: 1.6; }
+    
+    /* Callouts & Glassmorphism */
+    .ebook-page-content .callout { padding: 1.25rem; border-radius: 0.75rem; margin: 1.5rem 0; border-left: 4px solid; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); }
+    .ebook-page-content .callout.warning { border-color: #f59e0b; color: #fcd34d; background-color: rgba(245, 158, 11, 0.1); }
+    .ebook-page-content .callout.tip { border-color: #10b981; color: #6ee7b7; background-color: rgba(16, 185, 129, 0.1); }
+    
+    .ebook-page-content .definition-card, .ebook-page-content .card.glassmorphic { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); padding: 1.5rem; border-radius: 1rem; margin: 1.5rem 0; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .ebook-page-content .card.glassmorphic { border-left: 4px solid #10b981; }
+    
+    .ebook-page-content .timeline { border-left: 3px solid #10b981; padding-left: 1.5rem; margin: 1.5rem 0; position: relative; }
+    .ebook-page-content .timeline::before { content: ""; position: absolute; left: -9px; top: 0; width: 15px; height: 15px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2); }
+    
+    /* Grid Tables */
+    .ebook-page-content .grid-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: #334155; margin: 1.5rem 0; border-radius: 0.5rem; overflow: hidden; border: 1px solid #334155; }
+    .ebook-page-content .grid-table > div { background: #0f172a; padding: 1rem; }
+    .ebook-page-content .grid-table .header { background: #1e293b; font-weight: 700; color: #94a3b8; text-transform: uppercase; font-size: 0.85rem; }
+    
+    /* Page Flip container styles */
+    .flip-book {
+      width: 100%;
+      height: 100%;
+      display: none;
+      box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.5);
+    }
+    .page {
+      background-color: #0f172a;
+      overflow: hidden;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.8); border-radius: 10px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex font-sans overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col p-6 shadow-2xl z-20 overflow-y-auto">
+    <div class="flex items-center gap-3 mb-8">
+      <i data-lucide="book-open" class="text-emerald-400 w-8 h-8"></i>
+      <h1 class="text-xl font-bold tracking-tight text-white leading-tight">Ebook-ify <br/><span class="text-emerald-400">Reviewer Pro</span></h1>
+    </div>
+
+    <!-- API Key -->
+    <div class="mb-6">
+      <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" style="font-size: 0.65rem;">PASTE ALL API KEYS HERE (Mix OpenRouter, Groq, & Gemini keys separated by commas or new lines)</label>
+      <textarea id="api-key-input" placeholder="sk-or-v1-...\ngsk_...\nAIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:ring-1 focus:ring-emerald-500 outline-none transition-all font-mono text-xs h-24 resize-none"></textarea>
+    </div>
+
+    <!-- Model Select -->
+    <div class="mb-6">
+      <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Select Model</label>
+      <select id="modelSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:ring-1 focus:ring-emerald-500 outline-none transition-all font-mono text-xs">
+        <option value="gemini-3.6-flash">Gemini 3.6 Flash (Ultra-Efficient)</option>
+        <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Recommended)</option>
+        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Deep Reasoning)</option>
+        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fastest)</option>
+        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Fallback)</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option>
+        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+      </select>
+    </div>
+
+    <!-- Upload -->
+    <div class="mb-6">
+      <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Source PDF</label>
+      <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-950/50 group">
+        <input type="file" id="file-input" accept=".pdf" class="hidden" />
+        <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-500 group-hover:text-emerald-400 mx-auto mb-2 transition-colors"></i>
+        <p class="text-xs text-slate-400" id="file-name-display">Select or drop massive PDF</p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <button id="process-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mb-6">
+      <i data-lucide="play" class="w-4 h-4"></i> Start Processing
+    </button>
+
+    <!-- Progress -->
+    <div id="progress-container" class="hidden flex-col gap-3 flex-1">
+      <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Batch Pipeline</label>
+      
+      <div class="w-full bg-slate-800 rounded-full h-2.5">
+        <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      
+      <p id="progress-text" class="text-xs text-slate-300 font-medium">Processing Batch 0 of 0 (Pages 0/0)...</p>
+      
+      <button id="pause-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
+        <i data-lucide="pause" id="pause-icon" class="w-4 h-4"></i> <span id="pause-text">Pause</span>
+      </button>
+    </div>
+
+    <div class="mt-auto pt-6 pb-8">
+      <button id="download-btn" disabled class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg">
+        <i data-lucide="download" class="w-4 h-4"></i> Export Offline HTML
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main View -->
+  <main class="flex-1 relative flex items-center justify-center bg-slate-950 p-8 custom-scrollbar">
+    
+    <!-- Empty State -->
+    <div id="empty-state" class="text-center text-slate-500 flex flex-col items-center max-w-md">
+      <i data-lucide="layers" class="w-16 h-16 mb-4 opacity-50"></i>
+      <h2 class="text-xl font-bold text-slate-300 mb-2">No Book Loaded</h2>
+      <p class="text-sm">Upload a PDF and start the batch processor. As Gemini extracts and condenses the data, the 3D flipbook pages will appear here in real-time.</p>
+    </div>
+
+    <!-- Flipbook Container -->
+    <div class="relative w-full max-w-5xl aspect-[2/1.3] flex items-center justify-center">
+      <div id="flipbook-container" class="flip-book">
+        <!-- Pages will be injected here -->
+      </div>
+    </div>
+    
+  </main>
+
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+
+    // Elements
+    const apiKeyInput = document.getElementById('api-key-input');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const processBtn = document.getElementById('process-btn');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const pauseBtn = document.getElementById('pause-btn');
+    const pauseIcon = document.getElementById('pause-icon');
+    const pauseText = document.getElementById('pause-text');
+    const downloadBtn = document.getElementById('download-btn');
+    const emptyState = document.getElementById('empty-state');
+    const flipbookContainer = document.getElementById('flipbook-container');
+    
+    // State
+    let apiKey = localStorage.getItem('gemini_api_key') || '';
+    if (apiKey) apiKeyInput.value = apiKey;
+    
+    let openRouterKeys = [];
+    let groqKeys = [];
+    let geminiKeys = [];
+    let geminiKeyUsage = {};
+
+    function parseApiKeys(keysString) {
+      const keys = keysString.split(/[\s,]+/).map(k => k.trim()).filter(k => k.length > 0);
+      openRouterKeys = keys.filter(k => k.startsWith('sk-or-v1-'));
+      groqKeys = keys.filter(k => k.startsWith('gsk_'));
+      geminiKeys = keys.filter(k => !k.startsWith('sk-or-v1-') && !k.startsWith('gsk_'));
+      
+      geminiKeys.forEach(k => {
+        if (!geminiKeyUsage[k]) geminiKeyUsage[k] = { count: 0, resetTime: Date.now() + 60000 };
+      });
+    }
+
+    async function getAvailableKey() {
+      if (openRouterKeys.length > 0) return { key: openRouterKeys[0], provider: 'openrouter' };
+      if (groqKeys.length > 0) return { key: groqKeys[0], provider: 'groq' };
+      
+      const now = Date.now();
+      for (const k of geminiKeys) {
+        let usage = geminiKeyUsage[k];
+        if (now > usage.resetTime) {
+          usage.count = 0;
+          usage.resetTime = now + 60000;
+        }
+        if (usage.count < 10) return { key: k, provider: 'gemini' };
+      }
+      return null;
+    }
+
+    function recordGeminiUsage(key) {
+      if (geminiKeyUsage[key]) geminiKeyUsage[key].count++;
+    }
+
+    function rotateKey(provider) {
+       if (provider === 'openrouter' && openRouterKeys.length > 0) openRouterKeys.push(openRouterKeys.shift());
+       if (provider === 'groq' && groqKeys.length > 0) groqKeys.push(groqKeys.shift());
+       if (provider === 'gemini' && geminiKeys.length > 0) geminiKeys.push(geminiKeys.shift());
+    }
+
+    let currentFile = null;
+    let isProcessing = false;
+    let isPaused = false;
+    let currentBatch = 0;
+    let totalBatches = 0;
+    let totalPages = 0;
+    const BATCH_SIZE = 50;
+    
+    let generatedHtmlPages = [];
+    let pageFlipInstance = null;
+    let pdfDoc = null;
+
+    // API Key Handling
+    apiKeyInput.addEventListener('input', (e) => {
+      apiKey = e.target.value.trim();
+      localStorage.setItem('gemini_api_key', apiKey);
+    });
+
+    // File Handling
+    function handleFile(file) {
+      if (file && file.type === 'application/pdf') {
+        currentFile = file;
+        fileNameDisplay.innerText = `${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+        processBtn.disabled = false;
+      }
+    }
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-emerald-500'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-emerald-500'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('border-emerald-500');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    // Pause/Resume
+    pauseBtn.addEventListener('click', () => {
+      isPaused = !isPaused;
+      if (isPaused) {
+        pauseIcon.setAttribute('data-lucide', 'play');
+        pauseText.innerText = 'Resume';
+      } else {
+        pauseIcon.setAttribute('data-lucide', 'pause');
+        pauseText.innerText = 'Pause';
+        processNextBatch(); // Resume loop
+      }
+      lucide.createIcons();
+    });
+
+    // Flipbook Initialization
+    function initFlipbook() {
+      if (pageFlipInstance) {
+        pageFlipInstance.destroy();
+      }
+      
+      emptyState.classList.add('hidden');
+      flipbookContainer.style.display = 'block';
+      flipbookContainer.innerHTML = '';
+      
+      // Ensure even number of pages for spreads by appending a blank page if needed
+      const pagesToRender = [...generatedHtmlPages];
+      if (pagesToRender.length > 0 && pagesToRender.length % 2 !== 0) {
+        pagesToRender.push('<div class="ebook-page-content"></div>');
+      }
+      // Add cover pages (front and back) if we want, or just let it render as is.
+      // We need at least 2 pages to init StPageFlip smoothly, wait until we have some.
+      if (pagesToRender.length < 2) {
+        pagesToRender.push('<div class="ebook-page-content"></div>');
+      }
+
+      pagesToRender.forEach((pageHtml, index) => {
+        const div = document.createElement('div');
+        div.className = 'page';
+        div.innerHTML = pageHtml;
+        flipbookContainer.appendChild(div);
+      });
+
+      pageFlipInstance = new St.PageFlip(flipbookContainer, {
+        width: 450,
+        height: 600,
+        size: 'stretch',
+        minWidth: 300,
+        maxWidth: 600,
+        minHeight: 400,
+        maxHeight: 800,
+        maxShadowOpacity: 0.5,
+        showCover: false,
+        mobileScrollSupport: false
+      });
+
+      pageFlipInstance.loadFromHTML(flipbookContainer.querySelectorAll('.page'));
+    }
+
+    // PDF Extraction & API Calling
+    processBtn.addEventListener('click', async () => {
+      parseApiKeys(apiKey);
+      if (!currentFile || (openRouterKeys.length === 0 && groqKeys.length === 0 && geminiKeys.length === 0)) {
+        alert("Please provide a PDF file and at least one API Key.");
+        return;
+      }
+
+      isProcessing = true;
+      isPaused = false;
+      currentBatch = 0;
+      generatedHtmlPages = [];
+      processBtn.disabled = true;
+      processBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...';
+      lucide.createIcons();
+      
+      progressContainer.classList.remove('hidden');
+      progressContainer.classList.add('flex');
+
+      try {
+        const arrayBuffer = await currentFile.arrayBuffer();
+        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        totalPages = pdfDoc.numPages;
+        totalBatches = Math.ceil(totalPages / BATCH_SIZE);
+        
+        processNextBatch();
+      } catch (err) {
+        alert("Error loading PDF: " + err.message);
+        resetState();
+      }
+    });
+
+    async function processNextBatch() {
+      if (isPaused) return; // Wait for resume
+      
+      if (currentBatch >= totalBatches) {
+        finishProcessing();
+        return;
+      }
+
+      const startPage = currentBatch * BATCH_SIZE + 1;
+      const endPage = Math.min((currentBatch + 1) * BATCH_SIZE, totalPages);
+      
+      updateProgressUI(startPage, endPage);
+
+      try {
+        let batchText = '';
+        for (let i = startPage; i <= endPage; i++) {
+          const page = await pdfDoc.getPage(i);
+          const content = await page.getTextContent();
+          batchText += content.items.map(item => item.str).join(' ') + '\n\n';
+        }
+
+        const condensedHtmlPages = await callGeminiAPI(batchText);
+        
+        // Append new pages
+        generatedHtmlPages = generatedHtmlPages.concat(condensedHtmlPages);
+        
+        // Update Preview
+        if (generatedHtmlPages.length > 0) {
+          initFlipbook();
+        }
+
+        currentBatch++;
+        downloadBtn.disabled = false; // Allow download of partial results
+
+        // Queue next batch
+        await new Promise(res => setTimeout(res, 5000));
+        processNextBatch();
+
+      } catch (err) {
+        console.error("Batch error:", err);
+        alert(`Error processing batch ${currentBatch + 1}: ${err.message}. The process is paused.`);
+        isPaused = true;
+        pauseIcon.setAttribute('data-lucide', 'play');
+        pauseText.innerText = 'Resume';
+        lucide.createIcons();
+      }
+    }
+
+    function updateProgressUI(startPage, endPage) {
+      const percentage = (currentBatch / totalBatches) * 100;
+      progressBar.style.width = `${percentage}%`;
+      progressText.innerText = `Processing Batch ${currentBatch + 1} of ${totalBatches} (Pages ${startPage}-${endPage}/${totalPages})...`;
+    }
+
+    async function callGeminiAPI(text) {
+      const prompt = `You are a cognitive text compression engine generating content for a 3D offline ebook.
+The user provides a batch of extracted text from a textbook.
+TASK: Condense the text by ~30%, removing fluff, repetitive intros, and boilerplate, while retaining 100% of high-yield study insights, formulas, tables, and definitions.
+FORMAT: Output MUST be styled as visual ebook pages using rich HTML/CSS/SVG.
+- INLINE SVG GRAPHICS: Draw relevant minimalist vector icons, section badges, flow arrows, and visual markers using raw inline <svg viewbox="0 0 24 24"> tags. NO external image dependencies.
+- GLASSMORPHISM CALLOUT CARDS: Wrap clinical warnings, high-yield takeaways, and important formulas in styled visual boxes using <div class="card glassmorphic">, <div class="callout tip">, or <div class="callout warning"> with dark background colors (#1e293b) and emerald/coral accents.
+- GEOMETRIC TIMELINES & FLOWCHARTS: Render sequential steps, clinical procedures, and chronologies using visual CSS timeline blocks (<div class="timeline">) or step-by-step flowchart cards.
+- BOLD COMPARISON TABLES: Format drug comparisons, matrix grids, and pros/cons lists into styled HTML <table> or <div class="grid-table"> elements with custom visual badges and crisp cell padding.
+- Use <div class="ebook-page-content"> as the root container for EACH page. If the content is long, split it into multiple <div class="ebook-page-content"> elements (they represent physical pages).
+- Return raw HTML only. Do NOT wrap in \`\`\`html. 
+
+Text batch:
+${text}`;
+
+      let rawHtml = '';
+      let retries = 5;
+      
+      while (retries > 0) {
+        const keyInfo = await getAvailableKey();
+        if (!keyInfo) {
+          // If Gemini keys are on cooldown, wait a bit and retry
+          console.warn("No available API keys. Waiting 10s for reset...");
+          await new Promise(r => setTimeout(r, 10000));
+          retries--;
+          continue;
+        }
+        
+        try {
+          const selectedModel = document.getElementById('modelSelect').value;
+          let response;
+          let data;
+          
+          if (keyInfo.provider === 'openrouter') {
+            response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${keyInfo.key}`
+              },
+              body: JSON.stringify({
+                model: `google/${selectedModel}`,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.2
+              })
+            });
+          } else if (keyInfo.provider === 'groq') {
+            response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${keyInfo.key}`
+              },
+              body: JSON.stringify({
+                model: 'llama3-70b-8192',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.2
+              })
+            });
+          } else {
+            recordGeminiUsage(keyInfo.key);
+            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${keyInfo.key}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2 }
+              })
+            });
+          }
+
+          if (response.status === 429) {
+            console.warn(`${keyInfo.provider} rate limited. Rotating key.`);
+            rotateKey(keyInfo.provider);
+            retries--;
+            continue; // retry
+          }
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error((errData.error?.message || errData.error) || "API Request failed");
+          }
+
+          data = await response.json();
+          if (keyInfo.provider === 'gemini') {
+            rawHtml = data.candidates[0].content.parts[0].text;
+          } else {
+            rawHtml = data.choices[0].message.content;
+          }
+          break; // success
+          
+        } catch (err) {
+          console.error("API Error with key:", keyInfo.provider, err);
+          rotateKey(keyInfo.provider);
+          retries--;
+          if (retries === 0) throw err;
+        }
+      }
+      
+      if (!rawHtml) throw new Error("Failed to generate content after retries.");
+      
+      if (rawHtml.startsWith('```html')) rawHtml = rawHtml.substring(7);
+      if (rawHtml.startsWith('```')) rawHtml = rawHtml.substring(3);
+      if (rawHtml.endsWith('```')) rawHtml = rawHtml.substring(0, rawHtml.length - 3);
+
+      // Parse the returned HTML to extract individual pages
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(rawHtml, 'text/html');
+      const pageElements = doc.querySelectorAll('.ebook-page-content');
+      
+      const pagesArray = [];
+      if (pageElements.length > 0) {
+        pageElements.forEach(el => pagesArray.push(el.outerHTML));
+      } else {
+        // Fallback if model didn't wrap properly
+        pagesArray.push(`<div class="ebook-page-content">${rawHtml}</div>`);
+      }
+      
+      return pagesArray;
+    }
+
+    function finishProcessing() {
+      isProcessing = false;
+      progressBar.style.width = '100%';
+      progressText.innerText = 'Processing Complete!';
+      pauseBtn.style.display = 'none';
+      processBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Complete';
+      lucide.createIcons();
+    }
+
+    function resetState() {
+      isProcessing = false;
+      processBtn.disabled = false;
+      processBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Start Processing';
+      progressContainer.classList.add('hidden');
+      progressContainer.classList.remove('flex');
+      lucide.createIcons();
+    }
+
+    // Export Logic
+    downloadBtn.addEventListener('click', () => {
+      if (generatedHtmlPages.length === 0) return;
+
+      const escapedPages = JSON.stringify(generatedHtmlPages).replace(/<\//g, "<\\/");
+      
+      const exportHtml = `<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ebook-ify Offline Book</title>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></` + `script>
+  <style>
+    body { margin: 0; padding: 0; background: #020617; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, sans-serif; overflow: hidden; }
+    .ebook-page-content {
+      padding: 2.5rem;
+      background: #0f172a; 
+      color: #f8fafc;
+      height: 100%;
+      overflow-y: hidden;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+    .ebook-page-content h1, .ebook-page-content h2, .ebook-page-content h3 { color: #f8fafc; margin-top: 1em; margin-bottom: 0.5em; font-weight: 800; letter-spacing: -0.025em; }
+    .ebook-page-content p { margin-bottom: 1em; line-height: 1.6; font-size: 1rem; color: #cbd5e1; }
+    .ebook-page-content ul, .ebook-page-content ol { margin-bottom: 1em; padding-left: 1.5em; color: #cbd5e1; line-height: 1.6; }
+    .ebook-page-content .callout { padding: 1.25rem; border-radius: 0.75rem; margin: 1.5rem 0; border-left: 4px solid; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); }
+    .ebook-page-content .callout.warning { border-color: #f59e0b; color: #fcd34d; background-color: rgba(245, 158, 11, 0.1); }
+    .ebook-page-content .callout.tip { border-color: #10b981; color: #6ee7b7; background-color: rgba(16, 185, 129, 0.1); }
+    .ebook-page-content .definition-card, .ebook-page-content .card.glassmorphic { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); padding: 1.5rem; border-radius: 1rem; margin: 1.5rem 0; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .ebook-page-content .card.glassmorphic { border-left: 4px solid #10b981; }
+    .ebook-page-content .timeline { border-left: 3px solid #10b981; padding-left: 1.5rem; margin: 1.5rem 0; position: relative; }
+    .ebook-page-content .timeline::before { content: ""; position: absolute; left: -9px; top: 0; width: 15px; height: 15px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2); }
+    .ebook-page-content .grid-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: #334155; margin: 1.5rem 0; border-radius: 0.5rem; overflow: hidden; border: 1px solid #334155; }
+    .ebook-page-content .grid-table > div { background: #0f172a; padding: 1rem; }
+    .ebook-page-content .grid-table .header { background: #1e293b; font-weight: 700; color: #94a3b8; text-transform: uppercase; font-size: 0.85rem; }
+    
+    .flip-book { width: 100%; height: 100%; max-width: 1200px; max-height: 85vh; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+    .page { background-color: #0f172a; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="book" class="flip-book"></div>
+  <script>
+    const pagesData = ${escapedPages};
+    
+    // Ensure even length for spreads
+    if (pagesData.length > 0 && pagesData.length % 2 !== 0) {
+      pagesData.push('<div class="ebook-page-content"></div>');
+    }
+    if (pagesData.length < 2) {
+      pagesData.push('<div class="ebook-page-content"></div>');
+    }
+
+    const bookEl = document.getElementById('book');
+    pagesData.forEach(html => {
+      const div = document.createElement('div');
+      div.className = 'page';
+      div.innerHTML = html;
+      bookEl.appendChild(div);
+    });
+
+    const pageFlip = new St.PageFlip(bookEl, {
+      width: 500,
+      height: 700,
+      size: 'stretch',
+      minWidth: 300,
+      maxWidth: 600,
+      minHeight: 400,
+      maxHeight: 900,
+      maxShadowOpacity: 0.5,
+      showCover: true,
+      mobileScrollSupport: false
+    });
+
+    pageFlip.loadFromHTML(bookEl.querySelectorAll('.page'));
+  </` + `script>
+</body>
+</html>`;
+
+      const blob = new Blob([exportHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "flipbook_ebook.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>

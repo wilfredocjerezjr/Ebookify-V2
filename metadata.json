@@ -1,0 +1,8 @@
+{
+  "name": "Ebook-ify Reviewer Pro",
+  "description": "3D offline ebook reviewer generator and PDF cognitive compression tool using AI models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
