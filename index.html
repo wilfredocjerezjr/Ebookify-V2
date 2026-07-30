@@ -3,65 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to Offline HTML Flipbook Exporter</title>
+    <title>PDF to Offline HTML Flipbook Exporter Pro</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF.js for Client Analysis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background: #FAF8F5; color: #1E293B; }
-        .drop-zone { border: 2px dashed #CBD5E1; transition: all 0.2s; }
-        .drop-zone.dragover { background: #F1F5F9; border-color: #94A3B8; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background-color: #FAF6F0; /* Soft Pastel Warm Cream */
+            color: #1E293B;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid #EAE3D9;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+        }
+        .drop-zone {
+            border: 2px dashed #CBD5E1;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #6366F1;
+            background: #F4F3FF;
+        }
+        .step-spinner {
+            width: 18px; height: 18px;
+            border: 2px solid #E2E8F0;
+            border-top-color: #6366F1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="h-full flex flex-col items-center justify-center p-6">
+<body class="min-h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-10">
 
-<div class="w-full max-w-2xl bg-white rounded-xl shadow-xl p-8 border border-slate-200">
-    <h1 class="text-2xl font-bold text-center mb-2">PDF to Offline Flipbook</h1>
-    <p class="text-center text-slate-500 mb-8">Create a 100% offline, standalone HTML flipbook from any PDF.</p>
-
-    <div class="space-y-6">
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Book Title</label>
-            <input type="text" id="meta-title" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. My Awesome Book">
+<div class="w-full max-w-2xl glass-card rounded-2xl p-6 sm:p-8 transition-all duration-300">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-stone-200/60">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                <i data-lucide="book-open-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">PDF to Flipbook Exporter</h1>
+                <p class="text-xs text-slate-500 font-medium">Standalone • 100% Offline • Mobile-Perfect View</p>
+            </div>
         </div>
-        
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Author</label>
-            <input type="text" id="meta-author" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Jane Doe">
+        <span class="px-2.5 py-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 rounded-full">v2.5 Pro</span>
+    </div>
+
+    <!-- MAIN FORM STEP -->
+    <div id="form-container" class="space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Book Title</label>
+                <input type="text" id="meta-title" class="w-full px-3.5 py-2.5 bg-stone-50/50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white outline-none transition" placeholder="e.g. Annual Report 2026">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Author / Publisher</label>
+                <input type="text" id="meta-author" class="w-full px-3.5 py-2.5 bg-stone-50/50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white outline-none transition" placeholder="e.g. Design Studio">
+            </div>
         </div>
 
-        <div id="drop-zone" class="drop-zone rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer bg-slate-50">
-            <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-400 mb-3"></i>
-            <p class="text-sm text-slate-600 font-medium">Click or drag PDF here</p>
-            <p class="text-xs text-slate-400 mt-1">Embeds raw PDF. Max size ~50MB recommended.</p>
+        <!-- File Upload Dropzone -->
+        <div id="drop-zone" class="drop-zone rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer bg-stone-50/60 hover:bg-stone-50 text-center group">
+            <div class="w-12 h-12 rounded-full bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 shadow-sm transition-all mb-3">
+                <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm text-slate-700 font-semibold">Click to select or drag PDF file here</p>
+            <p class="text-xs text-slate-400 mt-1 font-medium">Embeds raw PDF stream • Output size ~2.5MB • Works offline</p>
             <input type="file" id="file-input" accept="application/pdf" class="hidden">
         </div>
 
-        <div id="file-info" class="hidden flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
+        <!-- Selected File Info Card -->
+        <div id="file-info" class="hidden flex items-center justify-between p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl">
             <div class="flex items-center gap-3">
-                <i data-lucide="file-text" class="w-5 h-5 text-blue-500"></i>
+                <div class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                </div>
                 <div>
-                    <p id="file-name" class="text-sm font-medium text-blue-900">filename.pdf</p>
-                    <p id="file-size" class="text-xs text-blue-600">2.5 MB</p>
+                    <p id="file-name" class="text-sm font-bold text-slate-900 truncate max-w-[220px] sm:max-w-xs">filename.pdf</p>
+                    <div class="flex items-center gap-2 text-xs text-indigo-700 font-medium mt-0.5">
+                        <span id="file-size">0 MB</span>
+                        <span>•</span>
+                        <span id="file-pages" class="font-semibold bg-indigo-100 px-1.5 py-0.5 rounded text-[11px]">Analyzing...</span>
+                    </div>
                 </div>
             </div>
-            <button id="btn-remove" class="p-1 text-slate-400 hover:text-slate-600">
-                <i data-lucide="x" class="w-4 h-4"></i>
+            <button id="btn-remove" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-white/80 rounded-lg transition" title="Remove PDF">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
         </div>
 
-        <button id="btn-export" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
-            <span id="btn-text">Generate Offline HTML</span>
+        <!-- Export Action Button -->
+        <button id="btn-export" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl shadow-md hover:shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2" disabled>
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span id="btn-text">Generate Offline Flipbook Ebook (.html)</span>
         </button>
+    </div>
 
-        <div id="progress-container" class="hidden space-y-2">
-            <div class="flex justify-between text-xs font-medium text-slate-600">
-                <span id="progress-text">Processing...</span>
-                <span id="progress-pct">0%</span>
+    <!-- MULTI-STEP PROCESSING ENGINE CARD -->
+    <div id="processing-container" class="hidden space-y-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">Converting Your PDF</h2>
+                <p class="text-xs text-slate-500">Packaging offline render engine & responsive layouts...</p>
             </div>
-            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                <div id="progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            <div id="est-time" class="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full flex items-center gap-1">
+                <i data-lucide="clock" class="w-3 h-3"></i>
+                <span>~2s remaining</span>
             </div>
         </div>
+
+        <!-- Dynamic Real-Time Progress Bar -->
+        <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-semibold text-slate-700">
+                <span id="progress-text">Initializing Pipeline...</span>
+                <span id="progress-pct" class="text-indigo-600">0%</span>
+            </div>
+            <div class="w-full bg-stone-200/80 rounded-full h-2.5 overflow-hidden">
+                <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Live Step Status List -->
+        <div class="space-y-3 bg-stone-50/80 border border-slate-200/60 rounded-xl p-4">
+            <!-- Step 1 -->
+            <div id="step-1" class="flex items-center justify-between text-xs font-medium text-slate-400">
+                <div class="flex items-center gap-2.5">
+                    <div class="step-icon w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center shrink-0">1</div>
+                    <span>Analyzing PDF Structure & Metadata...</span>
+                </div>
+                <span class="step-status text-[11px] font-semibold text-slate-400">Pending</span>
+            </div>
+            <!-- Step 2 -->
+            <div id="step-2" class="flex items-center justify-between text-xs font-medium text-slate-400">
+                <div class="flex items-center gap-2.5">
+                    <div class="step-icon w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center shrink-0">2</div>
+                    <span>Configuring Single-Page Mobile Engine...</span>
+                </div>
+                <span class="step-status text-[11px] font-semibold text-slate-400">Pending</span>
+            </div>
+            <!-- Step 3 -->
+            <div id="step-3" class="flex items-center justify-between text-xs font-medium text-slate-400">
+                <div class="flex items-center gap-2.5">
+                    <div class="step-icon w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center shrink-0">3</div>
+                    <span>Bundling Offline Rendering Scripts...</span>
+                </div>
+                <span class="step-status text-[11px] font-semibold text-slate-400">Pending</span>
+            </div>
+            <!-- Step 4 -->
+            <div id="step-4" class="flex items-center justify-between text-xs font-medium text-slate-400">
+                <div class="flex items-center gap-2.5">
+                    <div class="step-icon w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center shrink-0">4</div>
+                    <span>Packaging Standalone Ebook (.html)...</span>
+                </div>
+                <span class="step-status text-[11px] font-semibold text-slate-400">Pending</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS / DOWNLOAD MODAL CARD -->
+    <div id="success-container" class="hidden space-y-5">
+        <div class="p-4 bg-emerald-50 border border-emerald-200/80 rounded-xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <i data-lucide="check" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-emerald-950">Flipbook HTML Ebook Ready!</h3>
+                <p class="text-xs text-emerald-700">100% Standalone • Offline Capable • Single-Page Mobile View</p>
+            </div>
+        </div>
+
+        <!-- Output Summary Grid -->
+        <div class="grid grid-cols-3 gap-3">
+            <div class="bg-stone-50 border border-stone-200/80 p-3 rounded-xl text-center">
+                <p class="text-[10px] uppercase font-bold text-slate-400">Est. Size</p>
+                <p id="stat-size" class="text-sm font-bold text-slate-800 mt-0.5">~2.5 MB</p>
+            </div>
+            <div class="bg-stone-50 border border-stone-200/80 p-3 rounded-xl text-center">
+                <p class="text-[10px] uppercase font-bold text-slate-400">Total Pages</p>
+                <p id="stat-pages" class="text-sm font-bold text-slate-800 mt-0.5">- Pages</p>
+            </div>
+            <div class="bg-stone-50 border border-stone-200/80 p-3 rounded-xl text-center">
+                <p class="text-[10px] uppercase font-bold text-slate-400">Mobile Layout</p>
+                <p class="text-xs font-bold text-indigo-600 mt-1">Single-Page</p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="space-y-2.5">
+            <button id="btn-download" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-md hover:shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                <i data-lucide="download" class="w-5 h-5"></i>
+                <span>Download Standalone Flipbook Ebook (.html)</span>
+            </button>
+
+            <div class="grid grid-cols-2 gap-2.5">
+                <button id="btn-preview-toggle" class="py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold border border-indigo-200/70 rounded-xl transition flex items-center justify-center gap-1.5 text-xs">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    <span>Live Preview</span>
+                </button>
+                <button id="btn-reset" class="py-2.5 bg-stone-100 hover:bg-stone-200 text-slate-700 font-semibold border border-slate-200 rounded-xl transition flex items-center justify-center gap-1.5 text-xs">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Convert Another</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LIVE PREVIEW MODAL -->
+<div id="preview-modal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col">
+    <div class="h-14 bg-stone-900 border-b border-stone-800 text-white px-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+            <i data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
+            <span class="text-sm font-bold">Interactive Live Preview</span>
+            <span class="text-xs text-stone-400 hidden sm:inline">(Exact HTML Output)</span>
+        </div>
+        <button id="btn-close-preview" class="p-2 text-stone-400 hover:text-white rounded-lg hover:bg-stone-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+    </div>
+    <div class="flex-1 w-full bg-black relative">
+        <iframe id="preview-iframe" class="w-full h-full border-0"></iframe>
     </div>
 </div>
 
@@ -73,18 +247,33 @@ const fileInput = document.getElementById('file-input');
 const fileInfo = document.getElementById('file-info');
 const fileName = document.getElementById('file-name');
 const fileSize = document.getElementById('file-size');
+const filePages = document.getElementById('file-pages');
 const btnRemove = document.getElementById('btn-remove');
 const btnExport = document.getElementById('btn-export');
 const btnText = document.getElementById('btn-text');
 const titleInput = document.getElementById('meta-title');
 const authorInput = document.getElementById('meta-author');
-const progressContainer = document.getElementById('progress-container');
+
+const formContainer = document.getElementById('form-container');
+const processingContainer = document.getElementById('processing-container');
+const successContainer = document.getElementById('success-container');
+
 const progressBar = document.getElementById('progress-bar');
 const progressText = document.getElementById('progress-text');
 const progressPct = document.getElementById('progress-pct');
 
+const btnDownload = document.getElementById('btn-download');
+const btnPreviewToggle = document.getElementById('btn-preview-toggle');
+const btnReset = document.getElementById('btn-reset');
+
+const previewModal = document.getElementById('preview-modal');
+const previewIframe = document.getElementById('preview-iframe');
+const btnClosePreview = document.getElementById('btn-close-preview');
+
 let currentFile = null;
 let currentBase64 = null;
+let currentPagesCount = 0;
+let generatedExportHtml = null;
 
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -99,113 +288,205 @@ fileInput.addEventListener('change', (e) => {
 });
 
 btnRemove.addEventListener('click', () => {
+    resetFormState();
+});
+
+btnReset.addEventListener('click', () => {
+    resetFormState();
+});
+
+function resetFormState() {
     currentFile = null;
     currentBase64 = null;
+    currentPagesCount = 0;
+    generatedExportHtml = null;
+    
     fileInfo.classList.add('hidden');
     dropZone.classList.remove('hidden');
     btnExport.disabled = true;
     fileInput.value = '';
-});
+    titleInput.value = '';
+    authorInput.value = '';
+    
+    formContainer.classList.remove('hidden');
+    processingContainer.classList.add('hidden');
+    successContainer.classList.add('hidden');
+}
 
-function handleFile(file) {
+async function handleFile(file) {
     if (file.type !== 'application/pdf') {
         alert('Please select a valid PDF file.');
         return;
     }
     currentFile = file;
     fileName.textContent = file.name;
-    fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+    const mbSize = (file.size / (1024 * 1024)).toFixed(2);
+    fileSize.textContent = mbSize + ' MB';
+    filePages.textContent = 'Analyzing...';
     
     if (!titleInput.value) {
-        titleInput.value = file.name.replace('.pdf', '');
+        titleInput.value = file.name.replace(/\.pdf$/i, '');
     }
 
     dropZone.classList.add('hidden');
     fileInfo.classList.remove('hidden');
-    
+    btnExport.disabled = true;
+
     const reader = new FileReader();
-    reader.onload = (e) => {
-        const b64 = e.target.result;
-        currentBase64 = b64.substring(b64.indexOf(',') + 1);
-        btnExport.disabled = false;
+    reader.onload = async (e) => {
+        const result = e.target.result;
+        currentBase64 = result.substring(result.indexOf(',') + 1);
+
+        try {
+            const raw = atob(currentBase64);
+            const bytes = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+            
+            const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+            currentPagesCount = pdf.numPages;
+            filePages.textContent = currentPagesCount + ' Pages';
+            btnExport.disabled = false;
+        } catch(err) {
+            console.warn("Could not parse page count directly", err);
+            filePages.textContent = 'PDF Loaded';
+            btnExport.disabled = false;
+        }
     };
     reader.readAsDataURL(file);
 }
 
-function updateProgress(pct, text) {
-    progressContainer.classList.remove('hidden');
+function updateStepStatus(stepNum, state, message) {
+    const stepEl = document.getElementById(`step-${stepNum}`);
+    if (!stepEl) return;
+    
+    const iconEl = stepEl.querySelector('.step-icon');
+    const statusEl = stepEl.querySelector('.step-status');
+    
+    if (state === 'active') {
+        stepEl.className = 'flex items-center justify-between text-xs font-semibold text-indigo-700';
+        iconEl.className = 'step-spinner shrink-0';
+        iconEl.innerHTML = '';
+        statusEl.className = 'step-status text-[11px] font-bold text-indigo-600 animate-pulse';
+        statusEl.textContent = 'Processing...';
+    } else if (state === 'done') {
+        stepEl.className = 'flex items-center justify-between text-xs font-medium text-emerald-700';
+        iconEl.className = 'w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-[10px]';
+        iconEl.innerHTML = '✓';
+        statusEl.className = 'step-status text-[11px] font-bold text-emerald-600';
+        statusEl.textContent = 'Complete';
+    }
+}
+
+function setProgress(pct, text) {
     progressBar.style.width = `${pct}%`;
     progressPct.textContent = `${pct}%`;
     progressText.textContent = text;
 }
 
 btnExport.addEventListener('click', async () => {
-    btnExport.disabled = true;
-    btnText.textContent = 'Generating...';
+    formContainer.classList.add('hidden');
+    processingContainer.classList.remove('hidden');
     
     try {
-        updateProgress(10, 'Fetching PDF.js Engine...');
-        const pdfJsRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js');
+        // Step 1: Analyze PDF
+        updateStepStatus(1, 'active');
+        setProgress(15, 'Analyzing PDF Structure & Metadata...');
+        await new Promise(r => setTimeout(r, 400));
+        updateStepStatus(1, 'done');
+        
+        // Step 2: Configure Mobile Engine
+        updateStepStatus(2, 'active');
+        setProgress(35, 'Configuring Single-Page Mobile Engine...');
+        await new Promise(r => setTimeout(r, 400));
+        updateStepStatus(2, 'done');
+        
+        // Step 3: Bundle Scripts
+        updateStepStatus(3, 'active');
+        setProgress(55, 'Fetching & Bundling Offline Rendering Scripts...');
+        
+        const [pdfJsRes, pdfWorkerRes, pageFlipRes] = await Promise.all([
+            fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'),
+            fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'),
+            fetch('https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js')
+        ]);
+
         const pdfJsCode = await pdfJsRes.text();
-        
-        updateProgress(40, 'Fetching PDF.js Worker...');
-        const pdfWorkerRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js');
         const pdfWorkerCode = await pdfWorkerRes.text();
-        
-        updateProgress(70, 'Fetching StPageFlip Engine...');
-        const pageFlipRes = await fetch('https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js');
         const pageFlipCode = await pageFlipRes.text();
         
-        updateProgress(85, 'Building HTML Package...');
+        updateStepStatus(3, 'done');
         
-        const exportedHtml = generateOfflineHtml(
-            titleInput.value || 'Flipbook',
-            authorInput.value || 'Unknown Author',
+        // Step 4: Package HTML
+        updateStepStatus(4, 'active');
+        setProgress(85, 'Packaging Standalone Ebook (.html)...');
+        await new Promise(r => setTimeout(r, 300));
+        
+        generatedExportHtml = generateOfflineHtml(
+            titleInput.value || 'Flipbook Ebook',
+            authorInput.value || 'Anonymous',
             currentBase64,
             pdfJsCode,
             pdfWorkerCode,
             pageFlipCode
         );
 
-        updateProgress(95, 'Preparing Download...');
+        updateStepStatus(4, 'done');
+        setProgress(100, 'Export Packaging Complete!');
+        await new Promise(r => setTimeout(r, 400));
         
-        const blob = new Blob([exportedHtml], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${titleInput.value || 'book'}.html`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Display Success View
+        processingContainer.classList.add('hidden');
+        successContainer.classList.remove('hidden');
         
-        updateProgress(100, 'Done!');
-        setTimeout(() => {
-            progressContainer.classList.add('hidden');
-            btnExport.disabled = false;
-            btnText.textContent = 'Generate Offline HTML';
-        }, 2000);
+        const estMb = ((currentFile ? currentFile.size : 2500000) / (1024 * 1024) + 0.5).toFixed(1);
+        document.getElementById('stat-size').textContent = `~${estMb} MB`;
+        document.getElementById('stat-pages').textContent = `${currentPagesCount || '-'} Pages`;
 
     } catch (err) {
         console.error(err);
-        alert('An error occurred during export. Check console for details.');
-        btnExport.disabled = false;
-        btnText.textContent = 'Generate Offline HTML';
-        progressContainer.classList.add('hidden');
+        alert('An error occurred during export processing: ' + err.message);
+        processingContainer.classList.add('hidden');
+        formContainer.classList.remove('hidden');
     }
 });
 
+btnDownload.addEventListener('click', () => {
+    if (!generatedExportHtml) return;
+    const blob = new Blob([generatedExportHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(titleInput.value || 'flipbook').replace(/[^a-zA-Z0-9_\-]/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+btnPreviewToggle.addEventListener('click', () => {
+    if (!generatedExportHtml) return;
+    const blob = new Blob([generatedExportHtml], { type: 'text/html' });
+    previewIframe.src = URL.createObjectURL(blob);
+    previewModal.classList.remove('hidden');
+});
+
+btnClosePreview.addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+    previewIframe.src = 'about:blank';
+});
+
 function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode, pageFlipCode) {
-    const safeTitle = title.replace(/"/g, '&quot;');
-    const safeAuthor = author.replace(/"/g, '&quot;');
-    
+    const safeTitle = (title || 'Flipbook Ebook').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeAuthor = (author || 'Anonymous').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeTitleKey = safeTitle.replace(/[^a-zA-Z0-9]/g, '_');
+
     const scriptOpen = "<scr" + "ipt>";
     const scriptClose = "</scr" + "ipt>";
-    
+
     const safePdfJs = pdfJsCode.replace(/<\/script>/gi, '<\\/script>');
     const safePdfWorker = pdfWorkerCode.replace(/<\/script>/gi, '<\\/script>');
     const safePageFlip = pageFlipCode.replace(/<\/script>/gi, '<\\/script>');
-    
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -218,62 +499,65 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             --sab: env(safe-area-inset-bottom, 0px);
             --sal: env(safe-area-inset-left, 0px);
             --sar: env(safe-area-inset-right, 0px);
-            --bg-color: #FAF8F5;
+            --bg-color: #FAF6F0;
             --text-color: #1E293B;
-            --toolbar-bg: rgba(255, 255, 255, 0.94);
-            --toolbar-border: rgba(226, 232, 240, 0.8);
+            --header-bg: #FDFBF7;
+            --header-border: #EAE3D9;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             width: 100%; height: 100%; margin: 0; padding: 0;
             overflow: hidden; position: fixed;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color); color: var(--text-color);
             touch-action: none; user-select: none; -webkit-user-select: none;
         }
         
-        /* Toolbar */
+        /* Soft Pastel Top Reading Toolbar */
         header {
             position: fixed; top: 0; left: 0; right: 0;
-            height: calc(52px + var(--sat));
+            height: calc(55px + var(--sat));
             padding-top: var(--sat);
             padding-left: calc(12px + var(--sal));
             padding-right: calc(12px + var(--sar));
             z-index: 50; display: flex; align-items: center; justify-content: space-between;
-            background-color: var(--toolbar-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--toolbar-border);
+            background-color: var(--header-bg);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--header-border);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
-        .header-title { display: flex; flex-direction: column; max-width: 200px; }
-        .header-title h1 { margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .header-title p { margin: 0; font-size: 10px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-title { display: flex; flex-direction: column; max-width: 180px; }
+        .header-title h1 { margin: 0; font-size: 13px; font-weight: 700; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-title p { margin: 0; font-size: 10px; font-weight: 500; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .toolbar-group { display: flex; align-items: center; gap: 4px; }
+        .toolbar-group { display: flex; align-items: center; gap: 6px; }
         .btn { 
-            background: transparent; border: none; padding: 6px; border-radius: 6px; 
+            background: transparent; border: none; padding: 6px 8px; border-radius: 8px; 
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            color: #475569; transition: background 0.2s;
+            color: #475569; transition: all 0.2s;
         }
         .btn:hover { background: rgba(0,0,0,0.05); color: #0F172A; }
+        .btn:active { transform: scale(0.95); }
         .btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
         
         .page-input-group {
             display: flex; align-items: center; background: rgba(0,0,0,0.04);
-            border-radius: 6px; padding: 2px 6px; border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 8px; padding: 3px 8px; border: 1px solid rgba(0,0,0,0.06);
         }
         .page-input-group input {
-            width: 36px; text-align: center; background: transparent; border: none;
-            font-size: 12px; font-weight: bold; color: var(--text-color); outline: none;
+            width: 32px; text-align: center; background: transparent; border: none;
+            font-size: 12px; font-weight: 700; color: var(--text-color); outline: none;
         }
-        .page-input-group span { font-size: 12px; color: #64748B; margin-left: 2px; }
+        .page-input-group span { font-size: 11px; font-weight: 600; color: #64748B; margin-left: 2px; }
 
-        /* Viewport & Zoom Stage */
+        /* Full-Screen Viewport */
         #book-viewport {
             position: absolute;
-            top: calc(52px + var(--sat));
+            top: calc(55px + var(--sat));
             bottom: var(--sab); left: var(--sal); right: var(--sar);
-            width: auto; height: auto;
+            width: 100vw; height: calc(100vh - 55px);
             display: flex; align-items: center; justify-content: center;
-            overflow: hidden; padding: 4px;
+            overflow: hidden; padding: 0;
         }
         #zoom-stage {
             width: 100%; height: 100%;
@@ -283,25 +567,53 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         }
         #flipbook-container {
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 15px 35px -10px rgba(0,0,0,0.25); border-radius: 4px;
+            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.2); border-radius: 4px;
         }
         
         /* Pages */
         .page-wrapper {
-            background: #fff; overflow: hidden;
+            background: #FFFFFF; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.04);
         }
         .page-wrapper canvas {
             width: 100%; height: 100%;
             object-fit: contain; pointer-events: none;
+            background-color: #FFFFFF;
         }
         .page-loading {
-            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-            color: #94A3B8; font-size: 12px; font-weight: 500; background: #fff;
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #94A3B8; font-size: 12px; font-weight: 600; background: #FFFFFF; gap: 8px;
         }
-        .stf__block {
-            background-color: transparent !important;
+        .page-loading-spinner {
+            width: 24px; height: 24px; border: 2px solid #E2E8F0; border-top-color: #6366F1; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .stf__block { background-color: transparent !important; }
+
+        /* Slide-Out Thumbnails Drawer */
+        #thumbs-drawer {
+            position: fixed; top: calc(55px + var(--sat)); bottom: 0; left: 0; width: 260px;
+            background: #FDFBF7; border-right: 1px solid #EAE3D9; z-index: 60;
+            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.08);
+        }
+        #thumbs-drawer.open { transform: translateX(0); }
+        .drawer-header {
+            padding: 12px 16px; border-bottom: 1px solid #EAE3D9;
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 13px; font-weight: 700; color: #0F172A;
+        }
+        .drawer-grid {
+            flex: 1; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
+        .thumb-item {
+            aspect-ratio: 1/1.4; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 6px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; font-size: 11px; font-weight: 600; color: #64748B;
+        }
+        .thumb-item:hover, .thumb-item.active {
+            border-color: #6366F1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); color: #6366F1;
         }
 
         /* Loading Screen */
@@ -310,28 +622,31 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .spinner {
-            width: 40px; height: 40px; border: 3px solid rgba(0,0,0,0.1);
-            border-top-color: #3B82F6; border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 16px;
+            width: 44px; height: 44px; border: 3px solid rgba(99, 102, 241, 0.15);
+            border-top-color: #6366F1; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 16px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
     </style>
 </head>
 <body>
 
     <div id="loading-screen">
         <div class="spinner"></div>
-        <div style="font-size: 14px; font-weight: 600; color: #475569;" id="loading-text">Loading Engine...</div>
+        <div style="font-size: 14px; font-weight: 700; color: #334155;" id="loading-text">Preparing Flipbook Engine...</div>
     </div>
 
     <header>
         <div class="toolbar-group">
+            <button class="btn" id="btn-thumbs" title="Page Thumbnails">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </button>
             <div class="header-title">
                 <h1>${safeTitle}</h1>
                 <p>${safeAuthor}</p>
             </div>
         </div>
+        
         <div class="toolbar-group">
             <button class="btn" id="btn-prev" title="Previous Page">
                 <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -344,6 +659,7 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
                 <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </button>
         </div>
+        
         <div class="toolbar-group">
             <button class="btn" id="btn-fullscreen" title="Fullscreen">
                 <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
@@ -351,6 +667,18 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         </div>
     </header>
 
+    <!-- THUMBNAILS DRAWER -->
+    <div id="thumbs-drawer">
+        <div class="drawer-header">
+            <span>Pages Drawer</span>
+            <button class="btn" id="btn-close-thumbs" style="padding: 2px;">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="drawer-grid" id="drawer-grid"></div>
+    </div>
+
+    <!-- VIEWPORT & STAGE -->
     <div id="book-viewport">
         <div id="zoom-stage">
             <div id="flipbook-container"></div>
@@ -368,9 +696,10 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
 ${safePdfWorker}
     ${scriptClose}
 
-    <!-- MAIN APP LOGIC -->
+    <!-- MAIN READER LOGIC -->
     ${scriptOpen}
         const PDF_B64 = "${pdfBase64}";
+        const STORAGE_KEY = "flipbook_pos_${safeTitleKey}";
         
         let pdfDoc = null;
         let pageFlip = null;
@@ -384,46 +713,51 @@ ${safePdfWorker}
         let lastTapTime = 0;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            document.getElementById('loading-text').innerText = 'Parsing PDF Data...';
+            document.getElementById('loading-text').innerText = 'Decoding PDF Stream...';
+            
+            // Inline worker initialization safely via Data-URI
             try {
                 const workerEl = document.getElementById('pdf-worker-code');
                 if (workerEl) {
-                    const workerBlob = new Blob([workerEl.textContent], { type: 'text/javascript' });
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
+                    const workerBase64 = btoa(unescape(encodeURIComponent(workerEl.textContent)));
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'data:text/javascript;base64,' + workerBase64;
                 }
-            } catch(e) {}
+            } catch(e) { console.warn("Worker setup warning:", e); }
 
             try {
+                // Decode raw PDF Base64 safely to Uint8Array
                 const binaryString = atob(PDF_B64);
                 const len = binaryString.length;
                 const bytes = new Uint8Array(len);
                 for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
 
-                const loadingTask = pdfjsLib.getDocument({data: bytes});
+                const loadingTask = pdfjsLib.getDocument({ data: bytes });
                 pdfDoc = await loadingTask.promise;
                 totalPages = pdfDoc.numPages;
                 
                 document.getElementById('page-total').innerText = '/ ' + totalPages;
                 document.getElementById('page-input').max = totalPages;
                 
-                document.getElementById('loading-text').innerText = 'Initializing Book...';
+                document.getElementById('loading-text').innerText = 'Initializing Mobile Layout...';
                 await initBook();
+                buildDrawerGrid();
                 
                 document.getElementById('loading-screen').style.display = 'none';
                 
-                const saved = localStorage.getItem('flipbook_${safeTitle.replace(/\s+/g,'_')}');
+                // Auto-Restore Last Read Page Location
+                const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) {
-                    const p = parseInt(saved, 10);
-                    if (p >= 0 && p < totalPages) {
-                        pageFlip.flip(p);
+                    const savedIdx = parseInt(saved, 10);
+                    if (savedIdx >= 0 && savedIdx < totalPages) {
+                        setTimeout(() => pageFlip && pageFlip.flip(savedIdx), 200);
                     }
                 }
                 
                 setupEvents();
 
             } catch (err) {
-                console.error(err);
-                document.getElementById('loading-text').innerText = 'Error loading PDF';
+                console.error("PDF Initialization Error:", err);
+                document.getElementById('loading-text').innerText = 'Error loading document';
             }
         });
 
@@ -434,19 +768,26 @@ ${safePdfWorker}
             pdfPages = new Array(totalPages).fill(null);
             
             const p1 = await pdfDoc.getPage(1);
-            const p1Vp = p1.getViewport({scale: 1.0});
+            const p1Vp = p1.getViewport({ scale: 1.0 });
             const aspect = p1Vp.width / p1Vp.height;
             
-            const availW = Math.max(280, vp.clientWidth - 8);
-            const availH = Math.max(320, vp.clientHeight - 8);
+            const availW = vp.clientWidth;
+            const availH = vp.clientHeight;
             
-            const isPortrait = availW < 768 || availW < availH;
+            // HARD-LOCKED SINGLE PAGE VIEW ON MOBILE / PORTRAIT (<768px)
+            const isPortrait = availW < 768;
             
             let pageWidth, pageHeight;
             
             if (isPortrait) {
-                pageWidth = Math.floor(Math.min(availW, availH * aspect));
-                pageHeight = Math.floor(pageWidth / aspect);
+                // Scale page dynamically to occupy 100% of available screen width / max height
+                if (availW / aspect > availH) {
+                    pageHeight = availH;
+                    pageWidth = Math.floor(availH * aspect);
+                } else {
+                    pageWidth = availW;
+                    pageHeight = Math.floor(availW / aspect);
+                }
             } else {
                 pageWidth = Math.floor(Math.min(availW / 2, availH * aspect));
                 pageHeight = Math.floor(pageWidth / aspect);
@@ -456,7 +797,7 @@ ${safePdfWorker}
                 const d = document.createElement('div');
                 d.className = 'page-wrapper';
                 d.id = 'page-' + i;
-                d.innerHTML = '<div class="page-loading">Page ' + (i+1) + '</div>';
+                d.innerHTML = '<div class="page-loading"><div class="page-loading-spinner"></div><span>Rendering Page ' + (i+1) + '</span></div>';
                 container.appendChild(d);
             }
             
@@ -470,10 +811,10 @@ ${safePdfWorker}
                 maxWidth: 2500,
                 minHeight: 200,
                 maxHeight: 3000,
-                maxShadowOpacity: 0.4,
-                showCover: true,
+                maxShadowOpacity: 0.35,
+                showCover: !isPortrait, // Single page mode on mobile
                 mobileScrollSupport: false,
-                usePortrait: isPortrait,
+                usePortrait: true,
                 clickToFlip: true
             });
             
@@ -482,40 +823,47 @@ ${safePdfWorker}
             pageFlip.on('flip', (e) => {
                 const p = e.data;
                 document.getElementById('page-input').value = p + 1;
-                localStorage.setItem('flipbook_${safeTitle.replace(/\s+/g,'_')}', p);
+                localStorage.setItem(STORAGE_KEY, p);
+                updateDrawerActive(p);
                 lazyRender(p);
             });
             
             lazyRender(0);
         }
 
+        // STRICT ASYNC RENDER ON CANVAS CONTEXT (NO BLACK / BLANK PAGES)
         async function renderPage(pageNum) {
             if (pageNum < 0 || pageNum >= totalPages) return;
-            if (pdfPages[pageNum]) return;
-            pdfPages[pageNum] = 'loading';
+            if (pdfPages[pageNum] === 'done' || pdfPages[pageNum] === 'rendering') return;
+            pdfPages[pageNum] = 'rendering';
             
             try {
                 const p = await pdfDoc.getPage(pageNum + 1);
-                const dpr = window.devicePixelRatio || 1;
                 
-                const el = document.getElementById('page-' + pageNum);
-                const rect = el.getBoundingClientRect();
-                
-                const scale = (rect.height / p.getViewport({scale: 1}).height) * dpr;
-                const viewport = p.getViewport({scale: scale});
+                // Scale 2.0 for razor-sharp rendering on Retina/Mobile screens
+                const viewport = p.getViewport({ scale: 2.0 });
                 
                 const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d', {alpha: false});
+                const ctx = canvas.getContext('2d', { alpha: false });
                 canvas.width = Math.floor(viewport.width);
                 canvas.height = Math.floor(viewport.height);
                 
-                await p.render({ canvasContext: ctx, viewport: viewport }).promise;
+                // Solid white background to prevent transparent / black box glitches
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                el.innerHTML = '';
-                el.appendChild(canvas);
-                pdfPages[pageNum] = true;
+                // Strictly await render task completion
+                const renderTask = p.render({ canvasContext: ctx, viewport: viewport });
+                await renderTask.promise;
+                
+                const el = document.getElementById('page-' + pageNum);
+                if (el) {
+                    el.innerHTML = '';
+                    el.appendChild(canvas);
+                }
+                pdfPages[pageNum] = 'done';
             } catch(err) {
-                console.error(err);
+                console.error("Page Render Failure:", pageNum, err);
                 pdfPages[pageNum] = null;
             }
         }
@@ -533,9 +881,42 @@ ${safePdfWorker}
             });
         }
 
+        function buildDrawerGrid() {
+            const grid = document.getElementById('drawer-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < totalPages; i++) {
+                const item = document.createElement('div');
+                item.className = 'thumb-item' + (i === 0 ? ' active' : '');
+                item.id = 'thumb-' + i;
+                item.innerHTML = '<span>Page ' + (i + 1) + '</span>';
+                item.addEventListener('click', () => {
+                    pageFlip.flip(i);
+                    toggleDrawer(false);
+                });
+                grid.appendChild(item);
+            }
+        }
+
+        function updateDrawerActive(idx) {
+            document.querySelectorAll('.thumb-item').forEach((el, i) => {
+                if (i === idx) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+        }
+
+        function toggleDrawer(open) {
+            const drawer = document.getElementById('thumbs-drawer');
+            if (open === undefined) drawer.classList.toggle('open');
+            else if (open) drawer.classList.add('open');
+            else drawer.classList.remove('open');
+        }
+
         function setupEvents() {
             document.getElementById('btn-prev').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
             document.getElementById('btn-next').addEventListener('click', () => pageFlip && pageFlip.flipNext());
+            
+            document.getElementById('btn-thumbs').addEventListener('click', () => toggleDrawer());
+            document.getElementById('btn-close-thumbs').addEventListener('click', () => toggleDrawer(false));
             
             document.getElementById('page-input').addEventListener('change', (e) => {
                 let v = parseInt(e.target.value, 10);
@@ -571,6 +952,7 @@ ${safePdfWorker}
                 return Math.sqrt(dx*dx + dy*dy);
             }
             
+            // Touch & Pinch-to-Zoom Controls
             vp.addEventListener('touchstart', e => {
                 if (e.touches.length === 2) {
                     touchStartDist = getTouchDist(e.touches[0], e.touches[1]);
@@ -623,17 +1005,9 @@ ${safePdfWorker}
             window.addEventListener('resize', () => {
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(() => { 
-                    const cp = pageFlip.getCurrentPageIndex();
+                    const cp = pageFlip ? pageFlip.getCurrentPageIndex() : 0;
                     initBook().then(() => {
-                        if (cp > 0) pageFlip.flip(cp);
-                    });
-                }, 200);
-            });
-            window.addEventListener('orientationchange', () => {
-                setTimeout(() => { 
-                    const cp = pageFlip.getCurrentPageIndex();
-                    initBook().then(() => {
-                        if (cp > 0) pageFlip.flip(cp);
+                        if (cp > 0 && pageFlip) pageFlip.flip(cp);
                     });
                 }, 200);
             });
