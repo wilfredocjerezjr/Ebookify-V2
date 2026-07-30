@@ -630,6 +630,44 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             overflow: hidden;
             margin-top: 55px;
         }
+        @media (max-width: 767px) {
+            #flipbook-viewport {
+                height: calc(100vh - 55px - var(--sat) - var(--sab)) !important;
+                margin-top: calc(55px + var(--sat)) !important;
+            }
+            #flipbook-container {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 100% !important;
+                position: relative !important;
+            }
+            .page-wrapper {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                display: none !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background-color: transparent !important;
+                box-shadow: none !important;
+            }
+            .page-wrapper.active-mobile-page {
+                display: flex !important;
+            }
+            .page-wrapper canvas {
+                max-width: 100% !important;
+                max-height: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                object-fit: contain !important;
+                display: block !important;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+            }
+        }
         #zoom-stage {
             width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
@@ -791,6 +829,9 @@ ${safePdfWorker}
         let totalPages = 0;
         let pdfPages = [];
         
+        let isMobileMode = false;
+        let currentPageIndex = 0;
+
         let fitScale = 1.0;
         let flipbookWidth = 300;
         let flipbookHeight = 400;
@@ -845,7 +886,7 @@ ${safePdfWorker}
                 if (saved) {
                     const savedIdx = parseInt(saved, 10);
                     if (savedIdx >= 0 && savedIdx < totalPages) {
-                        setTimeout(() => pageFlip && pageFlip.flip(savedIdx), 200);
+                        currentPageIndex = savedIdx;
                     }
                 }
                 
@@ -857,6 +898,31 @@ ${safePdfWorker}
             }
         });
 
+        async function goToPage(p) {
+            if (p < 0 || p >= totalPages) return;
+            currentPageIndex = p;
+
+            const pageInputEl = document.getElementById('page-input');
+            if (pageInputEl) pageInputEl.value = p + 1;
+            localStorage.setItem(STORAGE_KEY, p);
+            updateDrawerActive(p);
+            lazyRender(p);
+
+            if (isMobileMode) {
+                document.querySelectorAll('.page-wrapper').forEach((el, idx) => {
+                    if (idx === p) {
+                        el.classList.add('active-mobile-page');
+                    } else {
+                        el.classList.remove('active-mobile-page');
+                    }
+                });
+            } else {
+                if (pageFlip && pageFlip.getCurrentPageIndex() !== p) {
+                    pageFlip.flip(p);
+                }
+            }
+        }
+
         async function initBook() {
             const vp = document.getElementById('flipbook-viewport');
             const container = document.getElementById('flipbook-container');
@@ -864,6 +930,7 @@ ${safePdfWorker}
 
             container.innerHTML = '';
             pdfPages = new Array(totalPages).fill(null);
+            isMobileMode = window.innerWidth < 768;
             
             const p1 = await pdfDoc.getPage(1);
             
@@ -888,44 +955,47 @@ ${safePdfWorker}
                 const d = document.createElement('div');
                 d.className = 'page-wrapper';
                 d.id = 'page-' + i;
-                d.style.width = flipbookWidth + 'px';
-                d.style.height = flipbookHeight + 'px';
+                if (!isMobileMode) {
+                    d.style.width = flipbookWidth + 'px';
+                    d.style.height = flipbookHeight + 'px';
+                }
                 d.innerHTML = '<div class="page-loading"><div class="page-loading-spinner"></div><span>Rendering Page ' + (i+1) + '</span></div>';
                 container.appendChild(d);
             }
             
-            if (pageFlip) pageFlip.destroy();
+            if (pageFlip) {
+                try { pageFlip.destroy(); } catch(err) {}
+                pageFlip = null;
+            }
             
-            // EXACT MATHEMATICAL ASPECT-RATIO CANVAS SCALING
-            pageFlip = new St.PageFlip(container, {
-                width: flipbookWidth,
-                height: flipbookHeight,
-                size: "fixed",               // Keep exact calculated pixel bounds
-                minWidth: 200,
-                maxWidth: 2000,
-                minHeight: 300,
-                maxHeight: 2500,
-                drawShadow: true,
-                showCover: false,
-                usePortrait: true,           // MANDATORY: Forces 1-page mode on mobile
-                startPage: 0,
-                autoSize: false,             // Prevent StPageFlip from over-expanding into 2 pages
-                mobileScrollSupport: true,
-                clickToFlip: true
-            });
+            if (!isMobileMode) {
+                // EXACT MATHEMATICAL ASPECT-RATIO CANVAS SCALING FOR DESKTOP
+                pageFlip = new St.PageFlip(container, {
+                    width: flipbookWidth,
+                    height: flipbookHeight,
+                    size: "fixed",               // Keep exact calculated pixel bounds
+                    minWidth: 200,
+                    maxWidth: 2000,
+                    minHeight: 300,
+                    maxHeight: 2500,
+                    drawShadow: true,
+                    showCover: false,
+                    usePortrait: true,           // MANDATORY: Forces 1-page mode
+                    startPage: currentPageIndex,
+                    autoSize: false,             // Prevent StPageFlip from over-expanding into 2 pages
+                    mobileScrollSupport: false,
+                    clickToFlip: true
+                });
+
+                pageFlip.loadFromHTML(document.querySelectorAll('.page-wrapper'));
+
+                pageFlip.on('flip', (e) => {
+                    const p = e.data;
+                    goToPage(p);
+                });
+            }
             
-            pageFlip.loadFromHTML(document.querySelectorAll('.page-wrapper'));
-            
-            pageFlip.on('flip', (e) => {
-                const p = e.data;
-                const pageInputEl = document.getElementById('page-input');
-                if (pageInputEl) pageInputEl.value = p + 1;
-                localStorage.setItem(STORAGE_KEY, p);
-                updateDrawerActive(p);
-                lazyRender(p);
-            });
-            
-            lazyRender(0);
+            goToPage(currentPageIndex);
         }
 
         // STRICT ASYNC RENDER ON CANVAS CONTEXT (NO BLACK / BLANK PAGES)
@@ -943,12 +1013,24 @@ ${safePdfWorker}
                 
                 // Render canvas at device DPR for maximum sharpness, but set CSS display size to fitScale
                 const dpr = window.devicePixelRatio || 1;
+
+                // For Mobile mode, calculate scale relative to the actual screen width/height for maximum high-res quality
+                let renderScale = fitScale;
+                if (isMobileMode) {
+                    const topBarHeight = 55;
+                    const availWidth = window.innerWidth;
+                    const availHeight = window.innerHeight - topBarHeight;
+                    const scaleX = availWidth / pdfPageWidth;
+                    const scaleY = availHeight / pdfPageHeight;
+                    renderScale = Math.min(scaleX, scaleY);
+                }
+
                 const canvas = document.createElement('canvas');
-                canvas.width = Math.floor((pdfPageWidth * fitScale) * dpr);
-                canvas.height = Math.floor((pdfPageHeight * fitScale) * dpr);
+                canvas.width = Math.floor((pdfPageWidth * renderScale) * dpr);
+                canvas.height = Math.floor((pdfPageHeight * renderScale) * dpr);
                 
-                canvas.style.width = Math.floor(pdfPageWidth * fitScale) + 'px';
-                canvas.style.height = Math.floor(pdfPageHeight * fitScale) + 'px';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
                 
                 const ctx = canvas.getContext('2d', { alpha: false });
                 ctx.fillStyle = '#FFFFFF';
@@ -957,7 +1039,7 @@ ${safePdfWorker}
                 
                 const renderContext = {
                     canvasContext: ctx,
-                    viewport: page.getViewport({ scale: fitScale })
+                    viewport: page.getViewport({ scale: renderScale })
                 };
                 await page.render(renderContext).promise;
                 
@@ -996,7 +1078,7 @@ ${safePdfWorker}
                 item.id = 'thumb-' + i;
                 item.innerHTML = '<span>Page ' + (i + 1) + '</span>';
                 item.addEventListener('click', () => {
-                    if (pageFlip) pageFlip.flip(i);
+                    goToPage(i);
                     toggleDrawer(false);
                 });
                 grid.appendChild(item);
@@ -1020,10 +1102,26 @@ ${safePdfWorker}
 
         function setupEvents() {
             const btnPrev = document.getElementById('btn-prev');
-            if (btnPrev) btnPrev.addEventListener('click', () => pageFlip && pageFlip.flipPrev());
+            if (btnPrev) {
+                btnPrev.addEventListener('click', () => {
+                    if (isMobileMode) {
+                        goToPage(currentPageIndex - 1);
+                    } else {
+                        if (pageFlip) pageFlip.flipPrev();
+                    }
+                });
+            }
 
             const btnNext = document.getElementById('btn-next');
-            if (btnNext) btnNext.addEventListener('click', () => pageFlip && pageFlip.flipNext());
+            if (btnNext) {
+                btnNext.addEventListener('click', () => {
+                    if (isMobileMode) {
+                        goToPage(currentPageIndex + 1);
+                    } else {
+                        if (pageFlip) pageFlip.flipNext();
+                    }
+                });
+            }
             
             const btnThumbs = document.getElementById('btn-thumbs');
             if (btnThumbs) btnThumbs.addEventListener('click', () => toggleDrawer());
@@ -1035,7 +1133,9 @@ ${safePdfWorker}
             if (pageInput) {
                 pageInput.addEventListener('change', (e) => {
                     let v = parseInt(e.target.value, 10);
-                    if (v > 0 && v <= totalPages) pageFlip && pageFlip.flip(v - 1);
+                    if (v > 0 && v <= totalPages) {
+                        goToPage(v - 1);
+                    }
                 });
             }
             
@@ -1072,13 +1172,17 @@ ${safePdfWorker}
                 return Math.sqrt(dx*dx + dy*dy);
             }
             
-            // Touch & Pinch-to-Zoom Controls
+            // Touch, Pinch-to-Zoom Controls & Swipe Gestures
+            let touchStartX = 0;
+            let touchStartY = 0;
             vp.addEventListener('touchstart', e => {
                 if (e.touches.length === 2) {
                     touchStartDist = getTouchDist(e.touches[0], e.touches[1]);
                     touchStartZoom = zoomLevel;
                     isPanning = false;
                 } else if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
                     const now = Date.now();
                     if (now - lastTapTime < 300) {
                         zoomLevel = zoomLevel > 1.05 ? 1.0 : 2.0;
@@ -1110,7 +1214,26 @@ ${safePdfWorker}
             
             vp.addEventListener('touchend', e => {
                 if (e.touches.length < 2) touchStartDist = 0;
-                if (e.touches.length === 0) isPanning = false;
+                if (e.touches.length === 0) {
+                    isPanning = false;
+                }
+
+                // Native Mobile Swipe Detection (when not zoomed in)
+                if (isMobileMode && zoomLevel <= 1.01 && e.changedTouches.length === 1) {
+                    const deltaX = e.changedTouches[0].clientX - touchStartX;
+                    const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+                    // Swipe horizontally if horizontal distance is significantly larger than vertical distance
+                    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                        if (deltaX < 0) {
+                            // Swipe Left -> Next Page
+                            goToPage(currentPageIndex + 1);
+                        } else {
+                            // Swipe Right -> Prev Page
+                            goToPage(currentPageIndex - 1);
+                        }
+                    }
+                }
             });
             
             vp.addEventListener('wheel', e => {
@@ -1125,9 +1248,9 @@ ${safePdfWorker}
             window.addEventListener('resize', () => {
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(() => { 
-                    const cp = pageFlip ? pageFlip.getCurrentPageIndex() : 0;
+                    const cp = currentPageIndex;
                     initBook().then(() => {
-                        if (cp > 0 && pageFlip) pageFlip.flip(cp);
+                        goToPage(cp);
                     });
                 }, 200);
             });
