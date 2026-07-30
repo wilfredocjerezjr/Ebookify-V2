@@ -606,9 +606,28 @@ ${text}`;
         align-items: center !important;
         justify-content: center !important;
         background-color: transparent !important;
+        transform-origin: left center !important;
+        transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease !important;
+        backface-visibility: hidden !important;
+        -webkit-backface-visibility: hidden !important;
       }
       .page.active-mobile-page {
         display: flex !important;
+        transform: rotateY(0deg) !important;
+        opacity: 1 !important;
+        z-index: 2 !important;
+      }
+      .page.prev-mobile-page {
+        display: flex !important;
+        transform: rotateY(-120deg) !important;
+        opacity: 0 !important;
+        z-index: 1 !important;
+      }
+      .page.next-mobile-page {
+        display: flex !important;
+        transform: rotateY(120deg) !important;
+        opacity: 0 !important;
+        z-index: 1 !important;
       }
       .ebook-page-content {
         max-width: 100% !important;
@@ -654,10 +673,13 @@ ${text}`;
       currentPageIndex = p;
       if (isMobileMode) {
         document.querySelectorAll('.page').forEach((el, idx) => {
+          el.classList.remove('active-mobile-page', 'prev-mobile-page', 'next-mobile-page');
           if (idx === p) {
             el.classList.add('active-mobile-page');
-          } else {
-            el.classList.remove('active-mobile-page');
+          } else if (idx === p - 1) {
+            el.classList.add('prev-mobile-page');
+          } else if (idx === p + 1) {
+            el.classList.add('next-mobile-page');
           }
         });
       } else {

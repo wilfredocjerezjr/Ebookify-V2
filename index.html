@@ -642,6 +642,8 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
                 width: 100% !important;
                 height: 100% !important;
                 position: relative !important;
+                perspective: 1200px !important;
+                transform-style: preserve-3d !important;
             }
             .page-wrapper {
                 position: absolute !important;
@@ -654,9 +656,28 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
                 justify-content: center !important;
                 background-color: transparent !important;
                 box-shadow: none !important;
+                transform-origin: left center !important;
+                transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease !important;
+                backface-visibility: hidden !important;
+                -webkit-backface-visibility: hidden !important;
             }
             .page-wrapper.active-mobile-page {
                 display: flex !important;
+                transform: rotateY(0deg) !important;
+                opacity: 1 !important;
+                z-index: 2 !important;
+            }
+            .page-wrapper.prev-mobile-page {
+                display: flex !important;
+                transform: rotateY(-120deg) !important;
+                opacity: 0 !important;
+                z-index: 1 !important;
+            }
+            .page-wrapper.next-mobile-page {
+                display: flex !important;
+                transform: rotateY(120deg) !important;
+                opacity: 0 !important;
+                z-index: 1 !important;
             }
             .page-wrapper canvas {
                 max-width: 100% !important;
@@ -737,6 +758,58 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             border-color: #6366F1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); color: #6366F1;
         }
 
+        /* Slide-Out Chapters/Outlines Drawer */
+        #chapters-drawer {
+            position: fixed; top: calc(55px + var(--sat)); bottom: 0; right: 0; width: 280px;
+            background: #FDFBF7; border-left: 1px solid #EAE3D9; z-index: 60;
+            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.08);
+        }
+        #chapters-drawer.open { transform: translateX(0); }
+
+        .drawer-search {
+            padding: 10px 12px; border-bottom: 1px solid #EAE3D9;
+            position: relative; background: #FDFBF7;
+        }
+        .drawer-search input {
+            width: 100%; padding: 8px 12px; border-radius: 8px;
+            border: 1px solid #CBD5E1; background: #FFFFFF; font-size: 12px;
+            outline: none; transition: border-color 0.2s;
+        }
+        .drawer-search input:focus {
+            border-color: #6366F1;
+        }
+        .search-suggestions {
+            position: absolute; top: 100%; left: 12px; right: 12px;
+            background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 70; max-height: 180px;
+            overflow-y: auto; display: flex; flex-direction: column;
+        }
+        .search-suggestions.hidden { display: none !important; }
+        .suggestion-item {
+            padding: 8px 12px; font-size: 11px; color: #334155; cursor: pointer;
+            border-bottom: 1px solid #F1F5F9; display: flex; justify-content: space-between;
+            align-items: center;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #F1F5F9; color: #6366F1; }
+
+        .chapter-item {
+            padding: 10px 12px; border-radius: 8px; border: 1px solid transparent;
+            cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between;
+            align-items: center; font-size: 12px; font-weight: 500; color: #334155;
+            background: #FFFFFF;
+        }
+        .chapter-item:hover, .chapter-item.active {
+            border-color: #6366F1; background: rgba(99, 102, 241, 0.05); color: #6366F1;
+        }
+        .chapter-title {
+            font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+        }
+        .chapter-page {
+            font-size: 10px; color: #64748B; font-weight: 700;
+        }
+
         /* Loading Screen */
         #loading-screen {
             position: fixed; inset: 0; background: #f3f4f6; z-index: 100;
@@ -786,6 +859,9 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
                 <button class="btn" id="btn-fullscreen" title="Fullscreen">
                     <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                 </button>
+                <button class="btn" id="btn-chapters" title="Chapters & Topics" style="margin-left: 2px;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
             </div>
         </header>
 
@@ -798,6 +874,22 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
                 </button>
             </div>
             <div class="drawer-grid" id="drawer-grid"></div>
+        </div>
+
+        <!-- CHAPTERS DRAWER -->
+        <div id="chapters-drawer">
+            <div class="drawer-header">
+                <span>Chapters & Topics</span>
+                <button class="btn" id="btn-close-chapters" style="padding: 2px;">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <!-- Search Bar inside Drawer -->
+            <div class="drawer-search">
+                <input type="text" id="drawer-search-input" placeholder="Search chapters/topics...">
+                <div id="search-suggestions" class="search-suggestions hidden"></div>
+            </div>
+            <div class="drawer-grid" id="chapters-grid" style="grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 4px; padding: 12px; overflow-y: auto; flex: 1;"></div>
         </div>
 
         <!-- VIEWPORT & STAGE -->
@@ -890,6 +982,7 @@ ${safePdfWorker}
                     }
                 }
                 
+                await extractOutline();
                 setupEvents();
 
             } catch (err) {
@@ -897,6 +990,173 @@ ${safePdfWorker}
                 safeSetText('loading-text', 'Error loading document');
             }
         });
+
+        let chaptersList = [];
+
+        async function extractOutline() {
+            try {
+                const outline = await pdfDoc.getOutline();
+                chaptersList = [];
+                if (outline && outline.length > 0) {
+                    await flattenOutline(outline);
+                } else {
+                    // Fallback outline: Page chunks of every 10 pages
+                    for (let i = 0; i < totalPages; i += 10) {
+                        chaptersList.push({
+                            title: `Page ${i + 1}`,
+                            pageIndex: i
+                        });
+                    }
+                }
+            } catch(e) {
+                console.warn("Outline extraction failed", e);
+                chaptersList = [];
+                for (let i = 0; i < totalPages; i += 10) {
+                    chaptersList.push({
+                        title: `Page ${i + 1}`,
+                        pageIndex: i
+                    });
+                }
+            }
+            renderChaptersList();
+        }
+
+        async function flattenOutline(items) {
+            for (const item of items) {
+                let pageIndex = -1;
+                if (item.dest) {
+                    try {
+                        const ref = item.dest;
+                        let destObj = ref;
+                        if (typeof ref === 'string') {
+                            destObj = await pdfDoc.getDestination(ref);
+                        }
+                        if (destObj && destObj.length > 0) {
+                            const pageRef = destObj[0];
+                            pageIndex = await pdfDoc.getPageIndex(pageRef);
+                        }
+                    } catch(err) {
+                        console.warn("Could not get destination page index", err);
+                    }
+                }
+                if (pageIndex >= 0 && pageIndex < totalPages) {
+                    chaptersList.push({
+                        title: item.title,
+                        pageIndex: pageIndex
+                    });
+                }
+                if (item.items && item.items.length > 0) {
+                    await flattenOutline(item.items);
+                }
+            }
+        }
+
+        function renderChaptersList() {
+            const grid = document.getElementById('chapters-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            if (chaptersList.length === 0) {
+                grid.innerHTML = '<div style="font-size: 11px; color: #64748B; text-align: center; padding: 20px;">No chapters found.</div>';
+                return;
+            }
+
+            chaptersList.forEach((item) => {
+                const d = document.createElement('div');
+                d.className = 'chapter-item' + (currentPageIndex === item.pageIndex ? ' active' : '');
+                d.dataset.page = item.pageIndex;
+                d.innerHTML = `
+                    <div class="chapter-title">${item.title}</div>
+                    <div class="chapter-page">p. ${item.pageIndex + 1}</div>
+                `;
+                d.addEventListener('click', () => {
+                    goToPage(item.pageIndex);
+                    toggleChaptersDrawer(false);
+                });
+                grid.appendChild(d);
+            });
+        }
+
+        function updateChapterActive(p) {
+            document.querySelectorAll('.chapter-item').forEach((el) => {
+                if (parseInt(el.dataset.page, 10) === p) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        function toggleChaptersDrawer(open) {
+            const drawer = document.getElementById('chapters-drawer');
+            if (!drawer) return;
+            if (open === undefined) drawer.classList.toggle('open');
+            else if (open) drawer.classList.add('open');
+            else drawer.classList.remove('open');
+        }
+
+        function searchTopics(query) {
+            if (!query) {
+                return [];
+            }
+            const cleanQuery = query.toLowerCase().trim();
+            const results = [];
+
+            if (/^\d+$/.test(cleanQuery)) {
+                const pNum = parseInt(cleanQuery, 10);
+                if (pNum > 0 && pNum <= totalPages) {
+                    results.push({
+                        title: `Go to Page ${pNum}`,
+                        type: 'Page',
+                        pageIndex: pNum - 1
+                    });
+                }
+            }
+
+            for (const chapter of chaptersList) {
+                if (chapter.title.toLowerCase().includes(cleanQuery)) {
+                    results.push({
+                        title: chapter.title,
+                        type: 'Chapter',
+                        pageIndex: chapter.pageIndex
+                    });
+                }
+            }
+
+            return results.slice(0, 10);
+        }
+
+        function updateSearchSuggestions(query) {
+            const container = document.getElementById('search-suggestions');
+            if (!container) return;
+
+            const results = searchTopics(query);
+            if (results.length === 0) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+
+            results.forEach(res => {
+                const d = document.createElement('div');
+                d.className = 'suggestion-item';
+                d.innerHTML = `
+                    <span>${res.title}</span>
+                    <span style="font-size: 9px; opacity: 0.7; font-weight: bold;">${res.type} (p. ${res.pageIndex + 1})</span>
+                `;
+                d.addEventListener('click', () => {
+                    goToPage(res.pageIndex);
+                    const input = document.getElementById('drawer-search-input');
+                    if (input) input.value = '';
+                    container.classList.add('hidden');
+                    toggleChaptersDrawer(false);
+                });
+                container.appendChild(d);
+            });
+        }
 
         async function goToPage(p) {
             if (p < 0 || p >= totalPages) return;
@@ -906,14 +1166,18 @@ ${safePdfWorker}
             if (pageInputEl) pageInputEl.value = p + 1;
             localStorage.setItem(STORAGE_KEY, p);
             updateDrawerActive(p);
+            updateChapterActive(p);
             lazyRender(p);
 
             if (isMobileMode) {
                 document.querySelectorAll('.page-wrapper').forEach((el, idx) => {
+                    el.classList.remove('active-mobile-page', 'prev-mobile-page', 'next-mobile-page');
                     if (idx === p) {
                         el.classList.add('active-mobile-page');
-                    } else {
-                        el.classList.remove('active-mobile-page');
+                    } else if (idx === p - 1) {
+                        el.classList.add('prev-mobile-page');
+                    } else if (idx === p + 1) {
+                        el.classList.add('next-mobile-page');
                     }
                 });
             } else {
@@ -1124,10 +1388,35 @@ ${safePdfWorker}
             }
             
             const btnThumbs = document.getElementById('btn-thumbs');
-            if (btnThumbs) btnThumbs.addEventListener('click', () => toggleDrawer());
+            if (btnThumbs) btnThumbs.addEventListener('click', () => {
+                toggleDrawer();
+                toggleChaptersDrawer(false);
+            });
 
             const btnCloseThumbs = document.getElementById('btn-close-thumbs');
             if (btnCloseThumbs) btnCloseThumbs.addEventListener('click', () => toggleDrawer(false));
+
+            const btnChapters = document.getElementById('btn-chapters');
+            if (btnChapters) btnChapters.addEventListener('click', () => {
+                toggleChaptersDrawer();
+                toggleDrawer(false);
+            });
+
+            const btnCloseChapters = document.getElementById('btn-close-chapters');
+            if (btnCloseChapters) btnCloseChapters.addEventListener('click', () => toggleChaptersDrawer(false));
+
+            const searchInput = document.getElementById('drawer-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    updateSearchSuggestions(e.target.value);
+                });
+                document.addEventListener('click', (e) => {
+                    const sugg = document.getElementById('search-suggestions');
+                    if (sugg && searchInput && !searchInput.contains(e.target) && !sugg.contains(e.target)) {
+                        sugg.classList.add('hidden');
+                    }
+                });
+            }
             
             const pageInput = document.getElementById('page-input');
             if (pageInput) {
