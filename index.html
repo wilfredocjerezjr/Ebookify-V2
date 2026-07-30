@@ -11,7 +11,9 @@
     <!-- PDF.js for Client Analysis -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
@@ -240,60 +242,50 @@
 </div>
 
 <script>
-lucide.createIcons();
-
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const fileInfo = document.getElementById('file-info');
-const fileName = document.getElementById('file-name');
-const fileSize = document.getElementById('file-size');
-const filePages = document.getElementById('file-pages');
-const btnRemove = document.getElementById('btn-remove');
-const btnExport = document.getElementById('btn-export');
-const btnText = document.getElementById('btn-text');
-const titleInput = document.getElementById('meta-title');
-const authorInput = document.getElementById('meta-author');
-
-const formContainer = document.getElementById('form-container');
-const processingContainer = document.getElementById('processing-container');
-const successContainer = document.getElementById('success-container');
-
-const progressBar = document.getElementById('progress-bar');
-const progressText = document.getElementById('progress-text');
-const progressPct = document.getElementById('progress-pct');
-
-const btnDownload = document.getElementById('btn-download');
-const btnPreviewToggle = document.getElementById('btn-preview-toggle');
-const btnReset = document.getElementById('btn-reset');
-
-const previewModal = document.getElementById('preview-modal');
-const previewIframe = document.getElementById('preview-iframe');
-const btnClosePreview = document.getElementById('btn-close-preview');
+if (window.lucide) {
+    lucide.createIcons();
+}
 
 let currentFile = null;
 let currentBase64 = null;
 let currentPagesCount = 0;
 let generatedExportHtml = null;
 
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) handleFile(e.target.files[0]);
-});
+// Safe DOM element retrieval helper
+function getEl(id) {
+    return document.getElementById(id);
+}
 
-btnRemove.addEventListener('click', () => {
-    resetFormState();
-});
+// Attach event listeners safely
+const dropZone = getEl('drop-zone');
+const fileInput = getEl('file-input');
 
-btnReset.addEventListener('click', () => {
-    resetFormState();
-});
+if (dropZone && fileInput) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+}
+
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length) handleFile(e.target.files[0]);
+    });
+}
+
+const btnRemove = getEl('btn-remove');
+if (btnRemove) {
+    btnRemove.addEventListener('click', () => resetFormState());
+}
+
+const btnReset = getEl('btn-reset');
+if (btnReset) {
+    btnReset.addEventListener('click', () => resetFormState());
+}
 
 function resetFormState() {
     currentFile = null;
@@ -301,36 +293,55 @@ function resetFormState() {
     currentPagesCount = 0;
     generatedExportHtml = null;
     
-    fileInfo.classList.add('hidden');
-    dropZone.classList.remove('hidden');
-    btnExport.disabled = true;
-    fileInput.value = '';
-    titleInput.value = '';
-    authorInput.value = '';
+    const fileInfo = getEl('file-info');
+    const dropZone = getEl('drop-zone');
+    const btnExport = getEl('btn-export');
+    const fileInput = getEl('file-input');
+    const titleInput = getEl('meta-title');
+    const authorInput = getEl('meta-author');
+    const formContainer = getEl('form-container');
+    const processingContainer = getEl('processing-container');
+    const successContainer = getEl('success-container');
+
+    if (fileInfo) fileInfo.classList.add('hidden');
+    if (dropZone) dropZone.classList.remove('hidden');
+    if (btnExport) btnExport.disabled = true;
+    if (fileInput) fileInput.value = '';
+    if (titleInput) titleInput.value = '';
+    if (authorInput) authorInput.value = '';
     
-    formContainer.classList.remove('hidden');
-    processingContainer.classList.add('hidden');
-    successContainer.classList.add('hidden');
+    if (formContainer) formContainer.classList.remove('hidden');
+    if (processingContainer) processingContainer.classList.add('hidden');
+    if (successContainer) successContainer.classList.add('hidden');
 }
 
 async function handleFile(file) {
-    if (file.type !== 'application/pdf') {
+    if (!file || file.type !== 'application/pdf') {
         alert('Please select a valid PDF file.');
         return;
     }
     currentFile = file;
-    fileName.textContent = file.name;
+
+    const fileNameEl = getEl('file-name');
+    const fileSizeEl = getEl('file-size');
+    const filePagesEl = getEl('file-pages');
+    const titleInputEl = getEl('meta-title');
+    const dropZoneEl = getEl('drop-zone');
+    const fileInfoEl = getEl('file-info');
+    const btnExportEl = getEl('btn-export');
+
+    if (fileNameEl) fileNameEl.textContent = file.name;
     const mbSize = (file.size / (1024 * 1024)).toFixed(2);
-    fileSize.textContent = mbSize + ' MB';
-    filePages.textContent = 'Analyzing...';
+    if (fileSizeEl) fileSizeEl.textContent = mbSize + ' MB';
+    if (filePagesEl) filePagesEl.textContent = 'Analyzing...';
     
-    if (!titleInput.value) {
-        titleInput.value = file.name.replace(/\.pdf$/i, '');
+    if (titleInputEl && !titleInputEl.value) {
+        titleInputEl.value = file.name.replace(/\.pdf$/i, '');
     }
 
-    dropZone.classList.add('hidden');
-    fileInfo.classList.remove('hidden');
-    btnExport.disabled = true;
+    if (dropZoneEl) dropZoneEl.classList.add('hidden');
+    if (fileInfoEl) fileInfoEl.classList.remove('hidden');
+    if (btnExportEl) btnExportEl.disabled = true;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -342,21 +353,26 @@ async function handleFile(file) {
             const bytes = new Uint8Array(raw.length);
             for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
             
-            const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-            currentPagesCount = pdf.numPages;
-            filePages.textContent = currentPagesCount + ' Pages';
-            btnExport.disabled = false;
+            if (window.pdfjsLib) {
+                const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+                currentPagesCount = pdf.numPages;
+                if (filePagesEl) filePagesEl.textContent = currentPagesCount + ' Pages';
+            } else {
+                if (filePagesEl) filePagesEl.textContent = 'PDF Loaded';
+            }
+            if (btnExportEl) btnExportEl.disabled = false;
         } catch(err) {
             console.warn("Could not parse page count directly", err);
-            filePages.textContent = 'PDF Loaded';
-            btnExport.disabled = false;
+            if (filePagesEl) filePagesEl.textContent = 'PDF Loaded';
+            if (btnExportEl) btnExportEl.disabled = false;
         }
     };
     reader.readAsDataURL(file);
 }
 
+// Safe step indicator updater with null checks
 function updateStepStatus(stepNum, state, message) {
-    const stepEl = document.getElementById(`step-${stepNum}`);
+    const stepEl = getEl(`step-${stepNum}`);
     if (!stepEl) return;
     
     const iconEl = stepEl.querySelector('.step-icon');
@@ -364,116 +380,153 @@ function updateStepStatus(stepNum, state, message) {
     
     if (state === 'active') {
         stepEl.className = 'flex items-center justify-between text-xs font-semibold text-indigo-700';
-        iconEl.className = 'step-spinner shrink-0';
-        iconEl.innerHTML = '';
-        statusEl.className = 'step-status text-[11px] font-bold text-indigo-600 animate-pulse';
-        statusEl.textContent = 'Processing...';
+        if (iconEl) {
+            iconEl.className = 'step-spinner shrink-0';
+            iconEl.innerHTML = '';
+        }
+        if (statusEl) {
+            statusEl.className = 'step-status text-[11px] font-bold text-indigo-600 animate-pulse';
+            statusEl.textContent = message || 'Processing...';
+        }
     } else if (state === 'done') {
         stepEl.className = 'flex items-center justify-between text-xs font-medium text-emerald-700';
-        iconEl.className = 'w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-[10px]';
-        iconEl.innerHTML = '✓';
-        statusEl.className = 'step-status text-[11px] font-bold text-emerald-600';
-        statusEl.textContent = 'Complete';
+        if (iconEl) {
+            iconEl.className = 'w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-[10px]';
+            iconEl.innerHTML = '✓';
+        }
+        if (statusEl) {
+            statusEl.className = 'step-status text-[11px] font-bold text-emerald-600';
+            statusEl.textContent = message || 'Complete';
+        }
     }
 }
 
+// Safe progress updater with null checks
 function setProgress(pct, text) {
-    progressBar.style.width = `${pct}%`;
-    progressPct.textContent = `${pct}%`;
-    progressText.textContent = text;
+    const bar = getEl('progress-bar');
+    const pctEl = getEl('progress-pct');
+    const txtEl = getEl('progress-text');
+
+    if (bar) bar.style.width = `${pct}%`;
+    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (txtEl) txtEl.textContent = text;
 }
 
-btnExport.addEventListener('click', async () => {
-    formContainer.classList.add('hidden');
-    processingContainer.classList.remove('hidden');
-    
-    try {
-        // Step 1: Analyze PDF
-        updateStepStatus(1, 'active');
-        setProgress(15, 'Analyzing PDF Structure & Metadata...');
-        await new Promise(r => setTimeout(r, 400));
-        updateStepStatus(1, 'done');
-        
-        // Step 2: Configure Mobile Engine
-        updateStepStatus(2, 'active');
-        setProgress(35, 'Configuring Single-Page Mobile Engine...');
-        await new Promise(r => setTimeout(r, 400));
-        updateStepStatus(2, 'done');
-        
-        // Step 3: Bundle Scripts
-        updateStepStatus(3, 'active');
-        setProgress(55, 'Fetching & Bundling Offline Rendering Scripts...');
-        
-        const [pdfJsRes, pdfWorkerRes, pageFlipRes] = await Promise.all([
-            fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'),
-            fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'),
-            fetch('https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js')
-        ]);
+const btnExport = getEl('btn-export');
+if (btnExport) {
+    btnExport.addEventListener('click', async () => {
+        const formContainer = getEl('form-container');
+        const processingContainer = getEl('processing-container');
+        const successContainer = getEl('success-container');
+        const titleInput = getEl('meta-title');
+        const authorInput = getEl('meta-author');
 
-        const pdfJsCode = await pdfJsRes.text();
-        const pdfWorkerCode = await pdfWorkerRes.text();
-        const pageFlipCode = await pageFlipRes.text();
+        if (formContainer) formContainer.classList.add('hidden');
+        if (processingContainer) processingContainer.classList.remove('hidden');
         
-        updateStepStatus(3, 'done');
-        
-        // Step 4: Package HTML
-        updateStepStatus(4, 'active');
-        setProgress(85, 'Packaging Standalone Ebook (.html)...');
-        await new Promise(r => setTimeout(r, 300));
-        
-        generatedExportHtml = generateOfflineHtml(
-            titleInput.value || 'Flipbook Ebook',
-            authorInput.value || 'Anonymous',
-            currentBase64,
-            pdfJsCode,
-            pdfWorkerCode,
-            pageFlipCode
-        );
+        try {
+            // Step 1: Analyze PDF
+            updateStepStatus(1, 'active');
+            setProgress(15, 'Analyzing PDF Structure & Metadata...');
+            await new Promise(r => setTimeout(r, 400));
+            updateStepStatus(1, 'done');
+            
+            // Step 2: Configure Mobile Engine
+            updateStepStatus(2, 'active');
+            setProgress(35, 'Configuring Single-Page Mobile Engine...');
+            await new Promise(r => setTimeout(r, 400));
+            updateStepStatus(2, 'done');
+            
+            // Step 3: Bundle Scripts
+            updateStepStatus(3, 'active');
+            setProgress(55, 'Fetching & Bundling Offline Rendering Scripts...');
+            
+            const [pdfJsRes, pdfWorkerRes, pageFlipRes] = await Promise.all([
+                fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js'),
+                fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'),
+                fetch('https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js')
+            ]);
 
-        updateStepStatus(4, 'done');
-        setProgress(100, 'Export Packaging Complete!');
-        await new Promise(r => setTimeout(r, 400));
-        
-        // Display Success View
-        processingContainer.classList.add('hidden');
-        successContainer.classList.remove('hidden');
-        
-        const estMb = ((currentFile ? currentFile.size : 2500000) / (1024 * 1024) + 0.5).toFixed(1);
-        document.getElementById('stat-size').textContent = `~${estMb} MB`;
-        document.getElementById('stat-pages').textContent = `${currentPagesCount || '-'} Pages`;
+            const pdfJsCode = await pdfJsRes.text();
+            const pdfWorkerCode = await pdfWorkerRes.text();
+            const pageFlipCode = await pageFlipRes.text();
+            
+            updateStepStatus(3, 'done');
+            
+            // Step 4: Package HTML
+            updateStepStatus(4, 'active');
+            setProgress(85, 'Packaging Standalone Ebook (.html)...');
+            await new Promise(r => setTimeout(r, 300));
+            
+            generatedExportHtml = generateOfflineHtml(
+                (titleInput && titleInput.value) || 'Flipbook Ebook',
+                (authorInput && authorInput.value) || 'Anonymous',
+                currentBase64,
+                pdfJsCode,
+                pdfWorkerCode,
+                pageFlipCode
+            );
 
-    } catch (err) {
-        console.error(err);
-        alert('An error occurred during export processing: ' + err.message);
-        processingContainer.classList.add('hidden');
-        formContainer.classList.remove('hidden');
-    }
-});
+            updateStepStatus(4, 'done');
+            setProgress(100, 'Export Packaging Complete!');
+            await new Promise(r => setTimeout(r, 400));
+            
+            // Display Success View
+            if (processingContainer) processingContainer.classList.add('hidden');
+            if (successContainer) successContainer.classList.remove('hidden');
+            
+            const estMb = ((currentFile ? currentFile.size : 2500000) / (1024 * 1024) + 0.5).toFixed(1);
+            const statSizeEl = getEl('stat-size');
+            if (statSizeEl) statSizeEl.textContent = `~${estMb} MB`;
+            const statPagesEl = getEl('stat-pages');
+            if (statPagesEl) statPagesEl.textContent = `${currentPagesCount || '-'} Pages`;
 
-btnDownload.addEventListener('click', () => {
-    if (!generatedExportHtml) return;
-    const blob = new Blob([generatedExportHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(titleInput.value || 'flipbook').replace(/[^a-zA-Z0-9_\-]/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-});
+        } catch (err) {
+            console.error("Export Engine Exception:", err);
+            // Handle error gracefully without throwing blocking alerts or breaking UI state
+            if (processingContainer) processingContainer.classList.add('hidden');
+            if (formContainer) formContainer.classList.remove('hidden');
+        }
+    });
+}
 
-btnPreviewToggle.addEventListener('click', () => {
-    if (!generatedExportHtml) return;
-    const blob = new Blob([generatedExportHtml], { type: 'text/html' });
-    previewIframe.src = URL.createObjectURL(blob);
-    previewModal.classList.remove('hidden');
-});
+const btnDownload = getEl('btn-download');
+if (btnDownload) {
+    btnDownload.addEventListener('click', () => {
+        if (!generatedExportHtml) return;
+        const titleInput = getEl('meta-title');
+        const blob = new Blob([generatedExportHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${((titleInput && titleInput.value) || 'flipbook').replace(/[^a-zA-Z0-9_\-]/g, '_')}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+}
 
-btnClosePreview.addEventListener('click', () => {
-    previewModal.classList.add('hidden');
-    previewIframe.src = 'about:blank';
-});
+const btnPreviewToggle = getEl('btn-preview-toggle');
+const previewModal = getEl('preview-modal');
+const previewIframe = getEl('preview-iframe');
+
+if (btnPreviewToggle) {
+    btnPreviewToggle.addEventListener('click', () => {
+        if (!generatedExportHtml) return;
+        const blob = new Blob([generatedExportHtml], { type: 'text/html' });
+        if (previewIframe) previewIframe.src = URL.createObjectURL(blob);
+        if (previewModal) previewModal.classList.remove('hidden');
+    });
+}
+
+const btnClosePreview = getEl('btn-close-preview');
+if (btnClosePreview) {
+    btnClosePreview.addEventListener('click', () => {
+        if (previewModal) previewModal.classList.add('hidden');
+        if (previewIframe) previewIframe.src = 'about:blank';
+    });
+}
 
 function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode, pageFlipCode) {
     const safeTitle = (title || 'Flipbook Ebook').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -483,9 +536,9 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
     const scriptOpen = "<scr" + "ipt>";
     const scriptClose = "</scr" + "ipt>";
 
-    const safePdfJs = pdfJsCode.replace(/<\/script>/gi, '<\\/script>');
-    const safePdfWorker = pdfWorkerCode.replace(/<\/script>/gi, '<\\/script>');
-    const safePageFlip = pageFlipCode.replace(/<\/script>/gi, '<\\/script>');
+    const safePdfJs = (pdfJsCode || '').replace(/<\/script>/gi, '<\\/script>');
+    const safePdfWorker = (pdfWorkerCode || '').replace(/<\/script>/gi, '<\\/script>');
+    const safePageFlip = (pageFlipCode || '').replace(/<\/script>/gi, '<\\/script>');
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -712,8 +765,13 @@ ${safePdfWorker}
         let touchStartPan = {x:0, y:0}; let touchStartPos = {x:0, y:0};
         let lastTapTime = 0;
 
+        function safeSetText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
-            document.getElementById('loading-text').innerText = 'Decoding PDF Stream...';
+            safeSetText('loading-text', 'Decoding PDF Stream...');
             
             // Inline worker initialization safely via Data-URI
             try {
@@ -735,14 +793,16 @@ ${safePdfWorker}
                 pdfDoc = await loadingTask.promise;
                 totalPages = pdfDoc.numPages;
                 
-                document.getElementById('page-total').innerText = '/ ' + totalPages;
-                document.getElementById('page-input').max = totalPages;
+                safeSetText('page-total', '/ ' + totalPages);
+                const pageInputEl = document.getElementById('page-input');
+                if (pageInputEl) pageInputEl.max = totalPages;
                 
-                document.getElementById('loading-text').innerText = 'Initializing Mobile Layout...';
+                safeSetText('loading-text', 'Initializing Mobile Layout...');
                 await initBook();
                 buildDrawerGrid();
                 
-                document.getElementById('loading-screen').style.display = 'none';
+                const loadingScreenEl = document.getElementById('loading-screen');
+                if (loadingScreenEl) loadingScreenEl.style.display = 'none';
                 
                 // Auto-Restore Last Read Page Location
                 const saved = localStorage.getItem(STORAGE_KEY);
@@ -757,13 +817,15 @@ ${safePdfWorker}
 
             } catch (err) {
                 console.error("PDF Initialization Error:", err);
-                document.getElementById('loading-text').innerText = 'Error loading document';
+                safeSetText('loading-text', 'Error loading document');
             }
         });
 
         async function initBook() {
             const vp = document.getElementById('book-viewport');
             const container = document.getElementById('flipbook-container');
+            if (!vp || !container) return;
+
             container.innerHTML = '';
             pdfPages = new Array(totalPages).fill(null);
             
@@ -822,7 +884,8 @@ ${safePdfWorker}
             
             pageFlip.on('flip', (e) => {
                 const p = e.data;
-                document.getElementById('page-input').value = p + 1;
+                const pageInputEl = document.getElementById('page-input');
+                if (pageInputEl) pageInputEl.value = p + 1;
                 localStorage.setItem(STORAGE_KEY, p);
                 updateDrawerActive(p);
                 lazyRender(p);
@@ -883,6 +946,7 @@ ${safePdfWorker}
 
         function buildDrawerGrid() {
             const grid = document.getElementById('drawer-grid');
+            if (!grid) return;
             grid.innerHTML = '';
             for (let i = 0; i < totalPages; i++) {
                 const item = document.createElement('div');
@@ -890,7 +954,7 @@ ${safePdfWorker}
                 item.id = 'thumb-' + i;
                 item.innerHTML = '<span>Page ' + (i + 1) + '</span>';
                 item.addEventListener('click', () => {
-                    pageFlip.flip(i);
+                    pageFlip && pageFlip.flip(i);
                     toggleDrawer(false);
                 });
                 grid.appendChild(item);
@@ -906,31 +970,45 @@ ${safePdfWorker}
 
         function toggleDrawer(open) {
             const drawer = document.getElementById('thumbs-drawer');
+            if (!drawer) return;
             if (open === undefined) drawer.classList.toggle('open');
             else if (open) drawer.classList.add('open');
             else drawer.classList.remove('open');
         }
 
         function setupEvents() {
-            document.getElementById('btn-prev').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
-            document.getElementById('btn-next').addEventListener('click', () => pageFlip && pageFlip.flipNext());
+            const btnPrev = document.getElementById('btn-prev');
+            if (btnPrev) btnPrev.addEventListener('click', () => pageFlip && pageFlip.flipPrev());
+
+            const btnNext = document.getElementById('btn-next');
+            if (btnNext) btnNext.addEventListener('click', () => pageFlip && pageFlip.flipNext());
             
-            document.getElementById('btn-thumbs').addEventListener('click', () => toggleDrawer());
-            document.getElementById('btn-close-thumbs').addEventListener('click', () => toggleDrawer(false));
+            const btnThumbs = document.getElementById('btn-thumbs');
+            if (btnThumbs) btnThumbs.addEventListener('click', () => toggleDrawer());
+
+            const btnCloseThumbs = document.getElementById('btn-close-thumbs');
+            if (btnCloseThumbs) btnCloseThumbs.addEventListener('click', () => toggleDrawer(false));
             
-            document.getElementById('page-input').addEventListener('change', (e) => {
-                let v = parseInt(e.target.value, 10);
-                if (v > 0 && v <= totalPages) pageFlip.flip(v - 1);
-            });
+            const pageInput = document.getElementById('page-input');
+            if (pageInput) {
+                pageInput.addEventListener('change', (e) => {
+                    let v = parseInt(e.target.value, 10);
+                    if (v > 0 && v <= totalPages) pageFlip && pageFlip.flip(v - 1);
+                });
+            }
             
-            document.getElementById('btn-fullscreen').addEventListener('click', () => {
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-                else document.exitFullscreen();
-            });
+            const btnFullscreen = document.getElementById('btn-fullscreen');
+            if (btnFullscreen) {
+                btnFullscreen.addEventListener('click', () => {
+                    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+                    else document.exitFullscreen();
+                });
+            }
             
             const vp = document.getElementById('book-viewport');
             const stage = document.getElementById('zoom-stage');
-            
+            if (!vp || !stage) return;
+
             function updateTransform() {
                 if (zoomLevel <= 1.01) {
                     zoomLevel = 1.0; panX = 0; panY = 0;
