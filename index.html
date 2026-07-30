@@ -560,15 +560,30 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         html, body {
             width: 100%; height: 100%; margin: 0; padding: 0;
             overflow: hidden; position: fixed;
+            background-color: #f3f4f6;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color); color: var(--text-color);
+            color: var(--text-color);
             touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+
+        #ebook-app-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: #f3f4f6;
         }
         
         /* Soft Pastel Top Reading Toolbar */
         header {
             position: fixed; top: 0; left: 0; right: 0;
-            height: calc(50px + var(--sat));
+            height: calc(55px + var(--sat));
             padding-top: var(--sat);
             padding-left: calc(12px + var(--sal));
             padding-right: calc(12px + var(--sar));
@@ -603,13 +618,17 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         .page-input-group span { font-size: 11px; font-weight: 600; color: #64748B; margin-left: 2px; }
 
         /* Full-Screen Viewport */
-        #book-viewport {
-            position: absolute;
-            top: calc(50px + var(--sat));
-            bottom: var(--sab); left: var(--sal); right: var(--sar);
-            width: 100vw; height: calc(100vh - 50px);
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; padding: 0;
+        #flipbook-viewport {
+            position: relative;
+            width: 100vw;
+            height: calc(100vh - 55px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            padding: 0;
+            overflow: hidden;
+            top: 27.5px;
         }
         #zoom-stage {
             width: 100%; height: 100%;
@@ -618,16 +637,20 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             will-change: transform;
         }
         #flipbook-container {
-            width: 100vw !important;
-            height: calc(100vh - 50px) !important;
             margin: 0 auto !important;
             padding: 0 !important;
-            overflow: hidden !important;
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
         }
         
+        /* Force StPageFlip parent containers to remain strictly centered */
+        .stpageflip-container, .stpageflip-element, .stf__parent, .stf__wrapper {
+            margin: 0 auto !important;
+            top: 0 !important;
+            left: 0 !important;
+        }
+
         /* Pages */
         .page-wrapper {
             background: #FFFFFF; overflow: hidden;
@@ -653,7 +676,7 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
 
         /* Slide-Out Thumbnails Drawer */
         #thumbs-drawer {
-            position: fixed; top: calc(50px + var(--sat)); bottom: 0; left: 0; width: 260px;
+            position: fixed; top: calc(55px + var(--sat)); bottom: 0; left: 0; width: 260px;
             background: #FDFBF7; border-right: 1px solid #EAE3D9; z-index: 60;
             transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.08);
@@ -678,7 +701,7 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
 
         /* Loading Screen */
         #loading-screen {
-            position: fixed; inset: 0; background: var(--bg-color); z-index: 100;
+            position: fixed; inset: 0; background: #f3f4f6; z-index: 100;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .spinner {
@@ -691,57 +714,59 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
 </head>
 <body>
 
-    <div id="loading-screen">
-        <div class="spinner"></div>
-        <div style="font-size: 14px; font-weight: 700; color: #334155;" id="loading-text">Preparing Flipbook Engine...</div>
-    </div>
+    <div id="ebook-app-container">
+        <div id="loading-screen">
+            <div class="spinner"></div>
+            <div style="font-size: 14px; font-weight: 700; color: #334155;" id="loading-text">Preparing Flipbook Engine...</div>
+        </div>
 
-    <header>
-        <div class="toolbar-group">
-            <button class="btn" id="btn-thumbs" title="Page Thumbnails">
-                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-            </button>
-            <div class="header-title">
-                <h1>${safeTitle}</h1>
-                <p>${safeAuthor}</p>
+        <header>
+            <div class="toolbar-group">
+                <button class="btn" id="btn-thumbs" title="Page Thumbnails">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </button>
+                <div class="header-title">
+                    <h1>${safeTitle}</h1>
+                    <p>${safeAuthor}</p>
+                </div>
             </div>
-        </div>
-        
-        <div class="toolbar-group">
-            <button class="btn" id="btn-prev" title="Previous Page">
-                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <div class="page-input-group">
-                <input type="number" id="page-input" value="1" min="1">
-                <span id="page-total">/ -</span>
+            
+            <div class="toolbar-group">
+                <button class="btn" id="btn-prev" title="Previous Page">
+                    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <div class="page-input-group">
+                    <input type="number" id="page-input" value="1" min="1">
+                    <span id="page-total">/ -</span>
+                </div>
+                <button class="btn" id="btn-next" title="Next Page">
+                    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
             </div>
-            <button class="btn" id="btn-next" title="Next Page">
-                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-        </div>
-        
-        <div class="toolbar-group">
-            <button class="btn" id="btn-fullscreen" title="Fullscreen">
-                <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-            </button>
-        </div>
-    </header>
+            
+            <div class="toolbar-group">
+                <button class="btn" id="btn-fullscreen" title="Fullscreen">
+                    <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                </button>
+            </div>
+        </header>
 
-    <!-- THUMBNAILS DRAWER -->
-    <div id="thumbs-drawer">
-        <div class="drawer-header">
-            <span>Pages Drawer</span>
-            <button class="btn" id="btn-close-thumbs" style="padding: 2px;">
-                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+        <!-- THUMBNAILS DRAWER -->
+        <div id="thumbs-drawer">
+            <div class="drawer-header">
+                <span>Pages Drawer</span>
+                <button class="btn" id="btn-close-thumbs" style="padding: 2px;">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="drawer-grid" id="drawer-grid"></div>
         </div>
-        <div class="drawer-grid" id="drawer-grid"></div>
-    </div>
 
-    <!-- VIEWPORT & STAGE -->
-    <div id="book-viewport">
-        <div id="zoom-stage">
-            <div id="flipbook-container"></div>
+        <!-- VIEWPORT & STAGE -->
+        <div id="flipbook-viewport">
+            <div id="zoom-stage">
+                <div id="flipbook-container"></div>
+            </div>
         </div>
     </div>
 
@@ -766,6 +791,10 @@ ${safePdfWorker}
         let totalPages = 0;
         let pdfPages = [];
         
+        let fitScale = 1.0;
+        let flipbookWidth = 300;
+        let flipbookHeight = 400;
+
         let zoomLevel = 1.0;
         let panX = 0; let panY = 0;
         let isPanning = false; let touchStartDist = 0; let touchStartZoom = 1;
@@ -829,7 +858,7 @@ ${safePdfWorker}
         });
 
         async function initBook() {
-            const vp = document.getElementById('book-viewport');
+            const vp = document.getElementById('flipbook-viewport');
             const container = document.getElementById('flipbook-container');
             if (!vp || !container) return;
 
@@ -837,35 +866,27 @@ ${safePdfWorker}
             pdfPages = new Array(totalPages).fill(null);
             
             const p1 = await pdfDoc.getPage(1);
-            const p1Vp = p1.getViewport({ scale: 1.0 });
-            const aspect = p1Vp.width / p1Vp.height;
+            const pdfPageWidth = p1.view[2] - p1.view[0];
+            const pdfPageHeight = p1.view[3] - p1.view[1];
             
-            const availW = vp.clientWidth || window.innerWidth;
-            const availH = vp.clientHeight || (window.innerHeight - 50);
+            const topBarHeight = 55;
+            const availWidth = window.innerWidth;
+            const availHeight = window.innerHeight - topBarHeight;
             
-            // HARD-LOCKED SINGLE PAGE VIEW ON MOBILE / PORTRAIT (<768px or aspect ratio)
-            const isPortrait = availW < 768 || availW < availH;
+            // Calculate fit-to-screen scale factor (Vertical Reel style)
+            const scaleX = availWidth / pdfPageWidth;
+            const scaleY = availHeight / pdfPageHeight;
+            fitScale = Math.min(scaleX, scaleY);
             
-            let pageWidth, pageHeight;
-            
-            if (isPortrait) {
-                // Scale page dynamically to occupy 100% of available screen width / max height
-                if (availW / aspect > availH) {
-                    pageHeight = availH;
-                    pageWidth = Math.floor(availH * aspect);
-                } else {
-                    pageWidth = availW;
-                    pageHeight = Math.floor(availW / aspect);
-                }
-            } else {
-                pageWidth = Math.floor(Math.min(availW / 2, availH * aspect));
-                pageHeight = Math.floor(pageWidth / aspect);
-            }
+            flipbookWidth = Math.floor(pdfPageWidth * fitScale);
+            flipbookHeight = Math.floor(pdfPageHeight * fitScale);
             
             for (let i = 0; i < totalPages; i++) {
                 const d = document.createElement('div');
                 d.className = 'page-wrapper';
                 d.id = 'page-' + i;
+                d.style.width = flipbookWidth + 'px';
+                d.style.height = flipbookHeight + 'px';
                 d.innerHTML = '<div class="page-loading"><div class="page-loading-spinner"></div><span>Rendering Page ' + (i+1) + '</span></div>';
                 container.appendChild(d);
             }
@@ -874,20 +895,19 @@ ${safePdfWorker}
             
             // STRICT STPAGEFLIP INITIALIZATION (NO Turn.js FLAGS)
             pageFlip = new St.PageFlip(container, {
-                width: pageWidth,
-                height: pageHeight,
-                size: "stretch",
-                minWidth: 150,
-                maxWidth: 2500,
-                minHeight: 200,
-                maxHeight: 3000,
+                width: flipbookWidth,
+                height: flipbookHeight,
+                size: "fixed",
+                minWidth: 200,
+                maxWidth: 2000,
+                minHeight: 300,
+                maxHeight: 2500,
                 drawShadow: true,
-                maxShadowOpacity: 0.35,
-                showCover: !isPortrait, // Single page mode on mobile portrait
-                mobileScrollSupport: true,
-                usePortrait: isPortrait, // MANDATORY: Forces 1-page mode on portrait viewports
+                showCover: false,
+                usePortrait: true, // MANDATORY: Forces 1-page mode on mobile
                 startPage: 0,
-                autoSize: true,
+                autoSize: false,   // Prevent StPageFlip from over-expanding into 2 pages
+                mobileScrollSupport: true,
                 clickToFlip: true
             });
             
@@ -913,22 +933,25 @@ ${safePdfWorker}
             
             try {
                 const p = await pdfDoc.getPage(pageNum + 1);
-                
-                // Scale 2.0 for razor-sharp rendering on Retina/Mobile screens
-                const viewport = p.getViewport({ scale: 2.0 });
+                const dpr = window.devicePixelRatio || 1;
+                const viewport = p.getViewport({ scale: fitScale });
                 
                 const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d', { alpha: false });
-                canvas.width = Math.floor(viewport.width);
-                canvas.height = Math.floor(viewport.height);
+                canvas.width = Math.floor(viewport.width * dpr);
+                canvas.height = Math.floor(viewport.height * dpr);
+                canvas.style.width = Math.floor(viewport.width) + 'px';
+                canvas.style.height = Math.floor(viewport.height) + 'px';
                 
-                // Solid white background to prevent transparent / black box glitches
+                const ctx = canvas.getContext('2d', { alpha: false });
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.scale(dpr, dpr);
                 
-                // Strictly await render task completion
-                const renderTask = p.render({ canvasContext: ctx, viewport: viewport });
-                await renderTask.promise;
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                await p.render(renderContext).promise;
                 
                 const el = document.getElementById('page-' + pageNum);
                 if (el) {
@@ -1016,7 +1039,7 @@ ${safePdfWorker}
                 });
             }
             
-            const vp = document.getElementById('book-viewport');
+            const vp = document.getElementById('flipbook-viewport');
             const stage = document.getElementById('zoom-stage');
             if (!vp || !stage) return;
 
