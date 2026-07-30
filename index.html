@@ -239,23 +239,8 @@
       <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">AI Execution Engine</label>
       <div class="relative">
         <select id="engineModeSelect" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all text-xs font-medium appearance-none cursor-pointer pr-8">
-          <option value="webllm" selected>⚡ In-Browser WebGPU AI (100% $0 Offline - WebLLM)</option>
+          <option value="webllm" selected>⚡ In-Browser WebGPU AI (100% $0 Offline - WebLLM Auto-Rotation)</option>
           <option value="cloud">☁️ Cloud API Fallback (OpenRouter ➔ Groq ➔ Gemini Free)</option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#475569]">
-          <i data-lucide="chevron-down" class="w-4 h-4"></i>
-        </div>
-      </div>
-    </div>
-
-    <!-- WebLLM Model Selector -->
-    <div id="webllm-model-box" class="mb-4">
-      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">In-Browser WebGPU Model</label>
-      <div class="relative">
-        <select id="webllmModelSelect" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all text-xs font-medium appearance-none cursor-pointer pr-8">
-          <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC" selected>Llama-3.2-1B-Instruct (Fast / Mobile)</option>
-          <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5-1.5B-Instruct (High Quality)</option>
-          <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama-3.2-3B-Instruct (Desktop High-Yield)</option>
         </select>
         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#475569]">
           <i data-lucide="chevron-down" class="w-4 h-4"></i>
@@ -280,7 +265,7 @@
     <!-- Engine Status -->
     <div class="mb-6 bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg p-3">
       <label class="block text-[0.6rem] font-semibold text-[#475569] uppercase tracking-wider mb-2">AI Engine Status</label>
-      <div id="engine-status-text" class="text-xs font-mono text-[#A8C3A8] mb-2 leading-tight">[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>WebLLM Local Engine ($0 Serverless)</div>
+      <div id="engine-status-text" class="text-xs font-mono text-[#A8C3A8] mb-2 leading-tight">[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>Auto-Rotating Local Models (Llama 3.2 ➔ Qwen 2.5)</div>
       <div id="live-badge" class="text-xs text-[#1E293B] font-medium bg-[#FAF8F5] p-2 rounded border border-[#E8DEF8] break-words">
         Waiting for pipeline...
       </div>
@@ -1204,7 +1189,6 @@
     
     // Engine Mode Toggle UI Listener
     const engineModeSelect = document.getElementById('engineModeSelect');
-    const webllmModelBox = document.getElementById('webllm-model-box');
     const engineStatusText = document.getElementById('engine-status-text');
     const apiKeyLabel = document.getElementById('api-key-label');
 
@@ -1212,11 +1196,9 @@
       engineModeSelect.addEventListener('change', () => {
         const val = engineModeSelect.value;
         if (val === 'webllm') {
-          if (webllmModelBox) webllmModelBox.style.display = 'block';
-          if (engineStatusText) engineStatusText.innerHTML = `[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>WebLLM Local Engine ($0 Serverless)`;
+          if (engineStatusText) engineStatusText.innerHTML = `[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>Auto-Rotating Local Models (Llama 3.2 ➔ Qwen 2.5)`;
           if (apiKeyLabel) apiKeyLabel.innerText = `API KEYS (Optional for WebLLM In-Browser Mode)`;
         } else {
-          if (webllmModelBox) webllmModelBox.style.display = 'none';
           if (engineStatusText) engineStatusText.innerHTML = `[ ACTIVE ROTATION ENGINE ]<br/>OpenRouter ➔ Groq ➔ Gemini (Capped)`;
           if (apiKeyLabel) apiKeyLabel.innerText = `PASTE ALL API KEYS HERE (Mix OpenRouter, Groq, & Gemini keys)`;
         }
@@ -1552,10 +1534,16 @@
       }
     }
 
-    // WebLLM Engine Instance & Caching
+    // WebLLM Engine Instance, Rotation & Caching
     let webllmModule = null;
     let webllmEngine = null;
     let currentWebllmModel = '';
+
+    const webgpuRotationModels = [
+      { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B' },
+      { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 1.5B' }
+    ];
+    let activeWebgpuIdx = 0;
 
     async function checkWebGPUSupport() {
       if (!navigator.gpu) return false;
@@ -1598,7 +1586,6 @@
 
     async function callGeminiAPI(text, myBatch) {
       const mode = document.getElementById('engineModeSelect')?.value || 'webllm';
-      const webllmModel = document.getElementById('webllmModelSelect')?.value || 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
 
       const fullPrompt = `You are a Senior Review Center Specialist, Lead Academic Author, and Doctorate-Level Educator. Synthesize uploaded text into an engaging, high-yield, interactive review ebook.
 
@@ -1647,32 +1634,46 @@ ${text}`;
           return await callCloudApiChain(fullPrompt, text, myBatch);
         }
 
-        try {
-          updateLiveBadge('WebLLM WebGPU Local', webllmModel, myBatch);
-          const engine = await getWebLLMEngine(webllmModel, myBatch);
+        let attempts = 0;
+        while (attempts < webgpuRotationModels.length) {
+          const currentModelObj = webgpuRotationModels[(activeWebgpuIdx + attempts) % webgpuRotationModels.length];
+          try {
+            updateLiveBadge('WebLLM WebGPU', currentModelObj.name, myBatch);
+            const engine = await getWebLLMEngine(currentModelObj.id, myBatch);
 
-          const liveBadge = document.getElementById('live-badge');
-          if (liveBadge) liveBadge.innerText = `[WebLLM Engine] Synthesizing Batch ${myBatch + 1} locally on WebGPU...`;
+            const liveBadge = document.getElementById('live-badge');
+            if (liveBadge) liveBadge.innerText = `[WebLLM Engine] Synthesizing Batch ${myBatch + 1} with ${currentModelObj.name}...`;
 
-          const reply = await engine.chat.completions.create({
-            messages: [{ role: 'user', content: fullPrompt }],
-            temperature: 0.2,
-          });
+            const reply = await engine.chat.completions.create({
+              messages: [{ role: 'user', content: fullPrompt }],
+              temperature: 0.2,
+            });
 
-          const rawHtml = reply.choices?.[0]?.message?.content || '';
+            const rawHtml = reply.choices?.[0]?.message?.content || '';
 
-          if (rawHtml && rawHtml.trim().length > 0) {
-            return processRawGeneratedHtml(rawHtml);
-          } else {
-            throw new Error("Empty response from WebLLM engine");
+            if (rawHtml && rawHtml.trim().length > 0) {
+              return processRawGeneratedHtml(rawHtml);
+            } else {
+              throw new Error(`Empty response from ${currentModelObj.name}`);
+            }
+          } catch (webllmErr) {
+            const nextModelObj = webgpuRotationModels[(activeWebgpuIdx + attempts + 1) % webgpuRotationModels.length];
+            const swapMsg = `[WebLLM Rotation] Swapped from ${currentModelObj.name} to ${nextModelObj.name} for Batch ${myBatch + 1}...`;
+            console.warn(swapMsg, webllmErr);
+            const liveBadge = document.getElementById('live-badge');
+            if (liveBadge) liveBadge.innerText = swapMsg;
+
+            attempts++;
+            activeWebgpuIdx = (activeWebgpuIdx + 1) % webgpuRotationModels.length;
           }
-        } catch (webllmErr) {
-          const noticeMsg = `[Notice] WebLLM error (${webllmErr.message || 'GPU execution failure'}). Switching Batch ${myBatch + 1} to Cloud API...`;
-          console.warn(noticeMsg);
-          const liveBadge = document.getElementById('live-badge');
-          if (liveBadge) liveBadge.innerText = noticeMsg;
-          return await callCloudApiChain(fullPrompt, text, myBatch);
         }
+
+        const cloudMsg = `[Notice] WebGPU models exhausted for Batch ${myBatch + 1}. Silently failing over to Cloud API...`;
+        console.warn(cloudMsg);
+        const liveBadge = document.getElementById('live-badge');
+        if (liveBadge) liveBadge.innerText = cloudMsg;
+
+        return await callCloudApiChain(fullPrompt, text, myBatch);
       } else {
         return await callCloudApiChain(fullPrompt, text, myBatch);
       }
