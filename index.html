@@ -1,16 +1,29 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="h-full bg-[#FAF8F5]">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ebook-ify Reviewer Pro</title>
+  <title>PDF Flipbook Converter Pro - Standalone Ebook Generator</title>
 
   <!-- Tailwind CSS & Typography via CDN -->
   <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: { extend: {} }
+      theme: {
+        extend: {
+          colors: {
+            pastel: {
+              rose: '#E8B4B8',
+              sage: '#A8C3A8',
+              cream: '#FAF8F5',
+              lavender: '#E8DEF8',
+              slate: '#1E293B',
+              muted: '#64748B'
+            }
+          }
+        }
+      }
     }
   </script>
 
@@ -27,2158 +40,1075 @@
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
   <style>
-    /* Premium Ebook Styling */
-    .ebook-page-content {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 1.5rem 1.75rem 2.25rem 1.75rem;
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
       background: #FAF8F5;
-      color: #1E293B;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      overflow-y: hidden;
-      box-sizing: border-box;
-      border: none;
-      position: relative;
-      line-height: 1.6;
     }
-    
-    .ebook-page-content h1, 
-    .ebook-page-content h2, 
-    .ebook-page-content h3 { 
-      color: #1E293B; 
-      margin-top: 1.8rem;
-      margin-bottom: 0.2rem;
-      font-weight: 800; 
-      letter-spacing: -0.025em; 
-      line-height: 1.25;
+    ::-webkit-scrollbar-thumb {
+      background: #E8DEF8;
+      border-radius: 9999px;
     }
-    .ebook-page-content h1:first-child, 
-    .ebook-page-content h2:first-child, 
-    .ebook-page-content h3:first-child {
-      margin-top: 0;
+    ::-webkit-scrollbar-thumb:hover {
+      background: #E8B4B8;
     }
 
-    .ebook-page-content p { 
-      margin-bottom: 0.6rem;
-      line-height: 1.6; 
-      font-size: clamp(0.92rem, 2vw, 1.1rem); 
-      color: #475569; 
-    }
-    .ebook-page-content ul, 
-    .ebook-page-content ol { 
-      margin-bottom: 0.6rem;
-      padding-left: 1.4em; 
-      color: #475569; 
-      line-height: 1.6; 
-      font-size: clamp(0.92rem, 2vw, 1.1rem); 
-    }
-    .ebook-page-content li {
-      margin-bottom: 0.2rem;
-    }
-    
-    /* Typography & Sub-label Spacing */
-    .ebook-page-content strong, 
-    .ebook-page-content b {
-      color: #1E293B;
-      font-weight: 700;
-    }
-    .ebook-page-content p > strong:first-child, 
-    .ebook-page-content p > b:first-child,
-    .ebook-page-content strong.sub-label,
-    .ebook-page-content b.sub-label {
-      margin-top: 0.5rem;
-      margin-bottom: 0rem !important;
-      display: inline-block;
-    }
-
-    /* Page Cutoff & Bisect Protection */
-    .ebook-page-content p, 
-    .ebook-page-content ul, 
-    .ebook-page-content ol, 
-    .ebook-page-content li, 
-    .ebook-page-content table, 
-    .ebook-page-content tr, 
-    .ebook-page-content td, 
-    .ebook-page-content .callout, 
-    .ebook-page-content .card, 
-    .ebook-page-content .timeline, 
-    .ebook-table-wrapper {
-      break-inside: avoid;
-      page-break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-    }
-
-    /* Orphan Title Protection */
-    .ebook-page-content h1, 
-    .ebook-page-content h2, 
-    .ebook-page-content h3, 
-    .ebook-page-content h4, 
-    .chapter-title, 
-    .section-header { 
-      break-after: avoid-page !important; 
-      page-break-after: avoid !important; 
-      break-inside: avoid !important; 
-    }
-
-    /* Smart Term Inline Tooltips */
-    .smart-term {
-      background-color: rgba(232, 222, 248, 0.7);
-      color: #1E293B;
-      padding: 0.1rem 0.35rem;
-      border-radius: 0.25rem;
-      font-weight: 600;
-      border-bottom: 2px solid #A8C3A8;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-block;
-    }
-    .smart-term:hover {
-      background-color: rgba(216, 180, 226, 0.9);
-      transform: translateY(-1px);
-    }
-
-    /* Extracted PDF Image Figures */
-    .ebook-img-card {
-      margin: 0.85rem 0;
-      text-align: center;
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-
-    /* Callouts & Glassmorphism */
-    .ebook-page-content .callout { 
-      padding: 1rem 1.25rem; 
-      border-radius: 0.75rem; 
-      margin: 1rem 0; 
-      border-left: 4px solid; 
-      background: rgba(232,180,184,0.1); 
-      backdrop-filter: blur(10px); 
-    }
-    .ebook-page-content .callout.warning { 
-      border-color: #e8b4b8; 
-      color: #b9767c; 
-      background-color: rgba(232, 180, 184, 0.15); 
-    }
-    .ebook-page-content .callout.tip { 
-      border-color: #a8c3a8; 
-      color: #6a8c6a; 
-      background-color: rgba(168, 195, 168, 0.15); 
-    }
-    
-    .ebook-page-content .definition-card, 
-    .ebook-page-content .card.glassmorphic { 
-      background: #FFFFFF; 
-      backdrop-filter: blur(12px); 
-      padding: 1.25rem; 
-      border-radius: 1rem; 
-      margin: 1rem 0; 
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); 
-      border: 1px solid #E8DEF8; 
-    }
-    .ebook-page-content .card.glassmorphic { 
-      border-left: 4px solid #a8c3a8; 
-    }
-    
-    .ebook-page-content .timeline { 
-      border-left: 3px solid #d8b4e2; 
-      padding-left: 1.25rem; 
-      margin: 1rem 0; 
-      position: relative; 
-    }
-    .ebook-page-content .timeline::before { 
-      content: ""; 
-      position: absolute; 
-      left: -9px; 
-      top: 0; 
-      width: 15px; 
-      height: 15px; 
-      background: #d8b4e2; 
-      border-radius: 50%; 
-      box-shadow: 0 0 0 4px rgba(216, 180, 226, 0.3); 
-    }
-    
-    /* Tables */
-    .ebook-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0.85rem 0; }
-    .ebook-page-content table { width: 100%; border-collapse: collapse; }
-    .ebook-page-content th, .ebook-page-content td { white-space: normal; word-break: break-word; min-width: 110px; text-align: left; padding: 8px 10px; border: 1px solid rgba(232, 180, 184, 0.4); font-size: 0.85rem; }
-    .ebook-page-content th { background-color: rgba(232, 180, 184, 0.1); color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.72rem; }
-    
-    /* Page Footer */
-    .page-footer { position: absolute; bottom: 0.5rem; left: 0; width: 100%; text-align: center; font-size: 0.75rem; color: #475569; opacity: 0.6; }
-
-    /* Page Flip container styles */
-    .flip-book {
-      width: 100%;
-      min-height: 100vh;
-      display: none;
-      box-shadow: none;
-    }
-    .page {
-      background-color: #FAF8F5;
+    /* Flipbook Container Animations */
+    .stpageflip-container {
+      box-shadow: 0 20px 40px -15px rgba(30, 41, 59, 0.15);
+      border-radius: 8px;
       overflow: hidden;
     }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.8); border-radius: 10px; }
+
+    /* Pulse Glow */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.02); }
+    }
+    .pulse-glow {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
   </style>
 </head>
-<body class="bg-[#FAF8F5] text-[#1E293B] min-h-screen flex flex-col lg:flex-row font-sans overflow-y-auto lg:overflow-hidden">
+<body class="h-full font-sans text-slate-800 bg-[#FAF8F5] antialiased flex flex-col">
 
-  <!-- Sidebar -->
-  <aside class="w-full lg:w-80 shrink-0 bg-[#FFFFFF] border-b lg:border-r lg:border-b-0 border-[#E8DEF8] flex flex-col p-6 shadow-2xl z-20 overflow-y-visible lg:overflow-y-auto h-auto lg:h-screen">
-    <div class="flex items-center gap-3 mb-8">
-      <i data-lucide="book-open" class="text-[#A8C3A8] w-8 h-8"></i>
-      <h1 class="text-xl font-bold tracking-tight text-[#E8B4B8] leading-tight">Ebook-ify <br/><span class="text-[#A8C3A8]">Reviewer Pro</span></h1>
-    </div>
-
-    <!-- Engine Mode Toggle -->
-    <div class="mb-4">
-      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">AI Execution Engine</label>
-      <div class="relative">
-        <select id="engineModeSelect" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all text-xs font-medium appearance-none cursor-pointer pr-8">
-          <option value="webllm" selected>⚡ In-Browser WebGPU AI (100% $0 Offline - WebLLM Auto-Rotation)</option>
-          <option value="cloud">☁️ Cloud API Fallback (OpenRouter ➔ Groq ➔ Gemini Free)</option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#475569]">
-          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+  <!-- Header / Navigation Bar -->
+  <header id="main-header" class="bg-white/80 backdrop-blur-md border-b border-[#E8DEF8] sticky top-0 z-30 px-4 lg:px-8 py-3 transition-all">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div id="app-logo-badge" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E8B4B8] to-[#A8C3A8] p-0.5 shadow-sm flex items-center justify-center">
+          <div class="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
+            <i data-lucide="book-open-check" class="w-5 h-5 text-[#1E293B]"></i>
+          </div>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            PDF Flipbook Converter Pro
+            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#A8C3A8]/20 text-emerald-800 border border-[#A8C3A8]/40">100% Offline Standalone</span>
+          </h1>
+          <p class="text-xs text-slate-500">Package heavy multi-page PDFs into zero-dependency 3D HTML Flipbooks</p>
         </div>
       </div>
-    </div>
 
-    <!-- API Key -->
-    <div class="mb-4">
-      <label id="api-key-label" class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">API KEYS (Optional for WebLLM In-Browser Mode)</label>
-      <div class="relative">
-        <div id="key-lock-overlay" class="absolute inset-0 z-10 bg-[#FFFFFF]/40 backdrop-blur-md cursor-pointer flex items-center justify-center rounded-lg border border-[#E8DEF8] hover:bg-[#FAF8F5]/60 transition-colors">
-           <div class="flex items-center gap-2">
-              <i data-lucide="lock" class="w-4 h-4 text-[#A8C3A8]"></i>
-              <span class="text-xs font-semibold text-[#A8C3A8]">Unlock</span>
-           </div>
-        </div>
-        <textarea id="api-key-input" placeholder="sk-or-v1-...\ngsk_...\nAIzaSy..." class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all font-mono text-xs h-12 resize-none select-none overflow-y-auto"></textarea>
+      <div class="flex items-center gap-3">
+        <button id="btn-quick-sample" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8DEF8] text-xs font-medium text-slate-700 hover:bg-[#FAF8F5] transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E8B4B8]"></i>
+          Load Sample Doc
+        </button>
+        <a href="https://github.com/nodeprep/pdf-flipbook" target="_blank" rel="noreferrer" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-[#FAF8F5] transition-colors" title="View Documentation">
+          <i data-lucide="help-circle" class="w-5 h-5"></i>
+        </a>
       </div>
     </div>
+  </header>
 
-    <!-- Engine Status -->
-    <div class="mb-6 bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg p-3">
-      <label class="block text-[0.6rem] font-semibold text-[#475569] uppercase tracking-wider mb-2">AI Engine Status</label>
-      <div id="engine-status-text" class="text-xs font-mono text-[#A8C3A8] mb-2 leading-tight">[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>Auto-Rotating Local Models (Llama 3.2 ➔ Qwen 2.5)</div>
-      <div id="live-badge" class="text-xs text-[#1E293B] font-medium bg-[#FAF8F5] p-2 rounded border border-[#E8DEF8] break-words">
-        Waiting for pipeline...
+  <!-- Main Content Layout -->
+  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- LEFT COLUMN: Upload & Configuration Card (5 Cols) -->
+    <section id="config-section" class="lg:col-span-5 bg-white border border-[#E8DEF8] rounded-2xl p-6 shadow-sm space-y-6">
+      
+      <!-- Section Title -->
+      <div>
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="file-up" class="w-4 h-4 text-[#E8B4B8]"></i>
+          1. Upload Source PDF
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Supports textbooks, medical manuals, and large files (up to 95MB+)</p>
       </div>
-    </div>
 
-    <!-- Upload -->
-    <div class="mb-6">
-      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">Source PDF</label>
-      <div id="dropzone" class="border-2 border-dashed border-[#E8DEF8] hover:border-[#E8B4B8]/50 rounded-xl p-4 text-center cursor-pointer transition-colors bg-[#FAF8F5]/50 group">
-        <input type="file" id="file-input" accept=".pdf" class="hidden" />
-        <i data-lucide="upload-cloud" class="w-6 h-6 text-[#475569] group-hover:text-[#A8C3A8] mx-auto mb-2 transition-colors"></i>
-        <p class="text-xs text-[#475569]" id="file-name-display">Select or drop massive PDF</p>
-      </div>
-    </div>
-
-    <!-- Batch Size Selector -->
-    <div class="mb-6">
-      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">Page Batch Size</label>
-      <div class="relative">
-        <select id="batchSizeSelect" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all text-xs font-medium appearance-none cursor-pointer pr-8">
-          <option value="5">5 Pages</option>
-          <option value="10">10 Pages</option>
-          <option value="20" selected>20 Pages</option>
-          <option value="40">40 Pages</option>
-          <option value="50">50 Pages</option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#475569]">
-          <i data-lucide="chevron-down" class="w-4 h-4"></i>
-        </div>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="mb-6 flex flex-col gap-3">
-      <button id="process-btn" disabled class="w-full bg-[#D8B4E2] hover:bg-[#E8B4B8] text-white disabled:opacity-50 disabled:hover:bg-[#D8B4E2] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-        <i data-lucide="play" class="w-4 h-4"></i> Start Processing
-      </button>
-      <button id="start-fresh-btn" style="display: none;" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] hover:bg-[#E8DEF8] text-[#1E293B] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Start Fresh (From Page 1)
-      </button>
-    </div>
-
-    <div id="download-container" class="mt-auto pt-6 pb-8 hidden">
-      <button id="download-btn" disabled class="w-full bg-[#E8B4B8] hover:bg-[#D8B4E2] disabled:opacity-50 disabled:hover:bg-[#E8B4B8] text-[#1E293B] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg">
-        <i data-lucide="download" class="w-4 h-4"></i> Export Offline HTML
-      </button>
-    </div>
-  </aside>
-
-  <!-- Main View -->
-  <main id="main-view" class="flex-1 relative flex flex-col items-center justify-center bg-[#FAF8F5] p-0 custom-scrollbar min-h-[50vh] lg:min-h-0 overflow-y-auto">
-    
-    <!-- Empty State -->
-    <div id="empty-state" class="hidden text-center text-[#475569] flex flex-col items-center max-w-md">
-    </div>
-
-    <!-- Processing Hub (Center Screen) -->
-    <div id="progress-container" class="w-full max-w-2xl flex-col items-center justify-center transition-all duration-500 mb-8 mt-4 lg:mt-0">
-      <div class="w-full bg-[#FFFFFF] border border-[#E8DEF8] rounded-2xl p-8 shadow-2xl">
-        <div class="flex items-center justify-between mb-6">
-           <div>
-             <h3 id="progress-title" class="text-xl font-bold text-[#1E293B] mb-1">System Idle</h3>
-             <p id="progress-subtitle" class="text-[#475569] text-sm">Upload a PDF to begin pipeline</p>
-           </div>
-           <div id="live-badge-status" class="hidden bg-[#A8C3A8]/20 text-[#A8C3A8] px-3 py-1 rounded-full text-xs font-bold border border-[#A8C3A8]/20 animate-pulse">
-             LIVE PROCESSING
-           </div>
+      <!-- File Dropzone -->
+      <div id="pdf-dropzone" class="border-2 border-dashed border-[#E8DEF8] hover:border-[#E8B4B8] rounded-xl p-6 text-center cursor-pointer bg-[#FAF8F5]/60 hover:bg-[#FAF8F5] transition-all relative group">
+        <input type="file" id="pdf-file-input" accept="application/pdf" class="hidden" />
+        
+        <div id="dropzone-prompt" class="space-y-3">
+          <div class="w-12 h-12 rounded-full bg-[#E8DEF8]/50 text-[#1E293B] mx-auto flex items-center justify-center group-hover:scale-110 transition-transform">
+            <i data-lucide="upload-cloud" class="w-6 h-6 text-[#1E293B]"></i>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-800">Drag & drop your PDF file here</p>
+            <p class="text-xs text-slate-500 mt-1">or <span class="text-[#1E293B] font-semibold underline underline-offset-2">browse file</span> from your device</p>
+          </div>
+          <p class="text-[11px] text-slate-400">PDF documents only • Fast local rendering</p>
         </div>
 
-        <div class="space-y-6">
-          <div class="space-y-2">
-            <div class="flex justify-between text-xs font-semibold text-[#475569] uppercase tracking-widest">
-               <span>Pipeline Progress</span>
-               <span id="progress-percent">0%</span>
+        <!-- Selected File Banner -->
+        <div id="selected-file-card" class="hidden text-left bg-white border border-[#A8C3A8] rounded-lg p-3.5 flex items-center justify-between shadow-sm">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <i data-lucide="file-text" class="w-5 h-5"></i>
             </div>
-            <div class="w-full bg-[#FAF8F5] rounded-full h-4 overflow-hidden border border-[#E8DEF8]">
-              <div id="progress-bar" class="bg-[#A8C3A8] h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+            <div class="truncate">
+              <p id="file-name-txt" class="text-xs font-bold text-slate-800 truncate">document.pdf</p>
+              <p id="file-meta-txt" class="text-[11px] text-slate-500">0 MB • Calculating pages...</p>
             </div>
           </div>
+          <button id="btn-remove-pdf" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 transition-colors shrink-0" title="Remove PDF">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
 
-          <div class="flex items-center gap-4 bg-[#FAF8F5] p-4 rounded-xl border border-[#E8DEF8]">
-             <div class="w-10 h-10 rounded-lg bg-[#A8C3A8]/30 flex items-center justify-center text-[#A8C3A8]">
-                <i data-lucide="cpu" class="w-6 h-6"></i>
-             </div>
-             <div class="flex-1">
-                <p id="progress-text" class="text-sm text-[#1E293B] font-medium leading-tight">Waiting for PDF upload...</p>
-                <p class="text-[0.65rem] text-[#475569] uppercase tracking-tighter mt-1">Cognitive Compression Pipeline</p>
-             </div>
+      <hr class="border-[#E8DEF8]" />
+
+      <!-- Section Title: Conversion Options -->
+      <div>
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-[#A8C3A8]"></i>
+          2. Conversion & Packaging Options
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Optimize image rendering quality vs export file size</p>
+      </div>
+
+      <!-- Settings Controls -->
+      <div class="space-y-4 text-xs">
+        
+        <!-- Quality Preset -->
+        <div>
+          <label id="lbl-quality" for="quality-preset" class="block font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+            <span>Rendering Quality Preset</span>
+            <span id="quality-badge" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Balanced (1.4x DPI)</span>
+          </label>
+          <select id="quality-preset" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none">
+            <option value="compact">Compact (1.0x DPI - Best for 95MB+ Textbooks / 300+ Pages)</option>
+            <option value="balanced" selected>Balanced (1.4x DPI - Recommended Crisp Text)</option>
+            <option value="high">High Quality (1.8x DPI - Maximum Clarity for Desktop Spread)</option>
+          </select>
+        </div>
+
+        <!-- JPEG Compression Quality -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label id="lbl-compression" for="jpeg-quality-slider" class="font-semibold text-slate-700">JPEG Compression Quality</label>
+            <span id="jpeg-quality-val" class="font-bold text-slate-800">80%</span>
+          </div>
+          <input type="range" id="jpeg-quality-slider" min="50" max="95" step="5" value="80" class="w-full accent-[#1E293B] cursor-pointer" />
+          <p class="text-[10px] text-slate-400 mt-0.5">Lower compression reduces HTML export file size</p>
+        </div>
+
+        <!-- Page Range -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="lbl-range-type" for="page-range-select" class="block font-semibold text-slate-700 mb-1">Page Range</label>
+            <select id="page-range-select" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none">
+              <option value="all" selected>All Pages</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div id="custom-range-box" class="opacity-50 pointer-events-none transition-opacity">
+            <label id="lbl-range-input" for="custom-range-input" class="block font-semibold text-slate-700 mb-1">e.g. 1-50</label>
+            <input type="text" id="custom-range-input" placeholder="1-50" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Metadata Input -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="lbl-ebook-title" for="ebook-title-input" class="block font-semibold text-slate-700 mb-1">Ebook Title</label>
+            <input type="text" id="ebook-title-input" placeholder="Interactive Ebook" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none" />
+          </div>
+          <div>
+            <label id="lbl-ebook-author" for="ebook-author-input" class="block font-semibold text-slate-700 mb-1">Author / Publisher</label>
+            <input type="text" id="ebook-author-input" placeholder="PDF Converter Pro" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Convert Action Button -->
+      <button id="btn-start-convert" disabled class="w-full py-3.5 px-4 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed group">
+        <i data-lucide="file-code-2" class="w-4 h-4"></i>
+        <span>Convert to Standalone HTML Ebook</span>
+      </button>
+
+      <div class="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1.5">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+        100% Client-side processing. Your PDF never leaves your browser.
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Conversion Progress, Live Preview & Download (7 Cols) -->
+    <section id="status-preview-section" class="lg:col-span-7 space-y-6">
+
+      <!-- DEFAULT / IDLE STATE CARD -->
+      <div id="card-idle-info" class="bg-white border border-[#E8DEF8] rounded-2xl p-8 shadow-sm space-y-6 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#E8B4B8]/30 to-[#A8C3A8]/30 mx-auto flex items-center justify-center">
+          <i data-lucide="book-open" class="w-8 h-8 text-[#1E293B]"></i>
+        </div>
+
+        <div class="max-w-md mx-auto">
+          <h3 class="text-lg font-bold text-slate-900">Standalone 3D Flipbook Converter</h3>
+          <p class="text-xs text-slate-500 mt-1">Transform PDFs into self-contained HTML ebooks with zero external server dependencies. Saved ebooks open natively on phones, tablets, and PCs offline.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <i data-lucide="rotate-3d" class="w-4 h-4 text-[#E8B4B8]"></i>
+              Realistic 3D Page Flip
+            </div>
+            <p class="text-[11px] text-slate-500">Fluid corner drag & touch-swipe page turning powered by StPageFlip.</p>
           </div>
 
+          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <i data-lucide="wifi-off" class="w-4 h-4 text-[#A8C3A8]"></i>
+              100% Offline Standalone
+            </div>
+            <p class="text-[11px] text-slate-500">Download a single `.html` file that works forever with no monthly subscriptions.</p>
+          </div>
+
+          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <i data-lucide="smartphone" class="w-4 h-4 text-[#1E293B]"></i>
+              Mobile Responsive Spread
+            </div>
+            <p class="text-[11px] text-slate-500">Single page view on phones, dual open-book spread on tablet/desktop screens.</p>
+          </div>
+
+          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <i data-lucide="bookmark-check" class="w-4 h-4 text-[#E8B4B8]"></i>
+              Reading Memory & Zoom
+            </div>
+            <p class="text-[11px] text-slate-500">Pinch-to-zoom, page jump input, thumbnail drawer, and last page memory.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE CONVERSION PROGRESS CARD -->
+      <div id="card-conversion-progress" class="hidden bg-white border border-[#E8DEF8] rounded-2xl p-6 shadow-sm space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-[#E8DEF8] text-[#1E293B] flex items-center justify-center animate-spin">
+              <i data-lucide="loader-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 id="progress-title-txt" class="text-sm font-bold text-slate-900">Converting PDF Pages...</h3>
+              <p id="progress-subtitle-txt" class="text-xs text-slate-500">Rendering page 0 of 0</p>
+            </div>
+          </div>
+          <span id="progress-pct-badge" class="text-xs font-extrabold text-[#1E293B] bg-[#FAF8F5] px-3 py-1 rounded-lg border border-[#E8DEF8]">0%</span>
+        </div>
+
+        <!-- Progress Bar Container -->
+        <div class="w-full bg-[#FAF8F5] border border-[#E8DEF8] h-3 rounded-full overflow-hidden p-0.5">
+          <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-[#E8B4B8] via-[#A8C3A8] to-[#1E293B] rounded-full transition-all duration-200 w-0"></div>
+        </div>
+
+        <!-- Micro Progress Steps -->
+        <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
+          <div id="step-1-badge" class="p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium">
+            1. Parse PDF
+          </div>
+          <div id="step-2-badge" class="p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium">
+            2. Render Canvases
+          </div>
+          <div id="step-3-badge" class="p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium">
+            3. Package HTML
+          </div>
+        </div>
+
+        <!-- Live Rendered Page Thumbnails Grid -->
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Live Page Render Queue</span>
+            <span id="page-count-status" class="text-[11px] font-mono text-slate-500">0 Pages Ready</span>
+          </div>
+          <div id="live-thumb-grid" class="h-40 overflow-y-auto bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3 grid grid-cols-4 sm:grid-cols-6 gap-2">
+            <!-- Dynamically populated page thumbnails -->
+          </div>
+        </div>
+      </div>
+
+      <!-- SUCCESS / CONVERTED READY CARD -->
+      <div id="card-conversion-success" class="hidden bg-white border border-[#A8C3A8] rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-emerald-950">Flipbook Conversion Complete!</h3>
+              <p id="success-summary-txt" class="text-xs text-emerald-700">Converted 0 pages into a standalone HTML ebook file.</p>
+            </div>
+          </div>
+          <span id="export-size-badge" class="text-xs font-mono font-bold text-emerald-800 bg-white px-2.5 py-1 rounded-md border border-emerald-300">~0 MB</span>
+        </div>
+
+        <!-- Primary Download Action -->
+        <div class="space-y-3">
+          <button id="btn-download-html" class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3 group">
+            <i data-lucide="download" class="w-5 h-5 group-hover:translate-y-0.5 transition-transform"></i>
+            <span>📥 Download Standalone Flipbook Ebook (.html)</span>
+          </button>
+          
           <div class="flex gap-3">
-            <button id="pause-btn" style="display: none;" class="flex-1 bg-[#FAF8F5] hover:bg-[#E8DEF8] text-[#1E293B] font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 border border-[#E8DEF8] shadow-lg active:scale-95">
-              <i data-lucide="pause" id="pause-icon" class="w-4 h-4"></i> <span id="pause-text">Pause Engine</span>
+            <button id="btn-launch-preview" class="flex-1 py-2.5 px-4 rounded-xl border border-[#E8DEF8] bg-[#FAF8F5] hover:bg-white text-slate-800 font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="eye" class="w-4 h-4 text-[#E8B4B8]"></i>
+              <span>Test Live Flipbook Preview</span>
+            </button>
+            <button id="btn-convert-another" class="py-2.5 px-4 rounded-xl border border-[#E8DEF8] text-slate-600 hover:text-slate-900 font-semibold text-xs hover:bg-[#FAF8F5] transition-colors">
+              Convert Another PDF
             </button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Flipbook Container -->
-    <div id="flipbook-wrapper" class="relative w-full h-full flex items-center justify-center flex-1">
-      <div id="flipbook-container" class="flip-book w-full h-full">
-        <!-- Pages will be injected here -->
-      </div>
-    </div>
-    
-    <!-- TOC Drawer -->
-    <div id="toc-drawer" class="fixed right-0 top-0 h-full w-80 bg-[#FFFFFF] border-l border-[#E8DEF8] shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
-      <div class="p-6 border-b border-[#E8DEF8] flex justify-between items-center bg-[#FFFFFF]">
-        <h2 class="text-[#1E293B] font-bold text-lg flex items-center gap-2"><i data-lucide="list"></i> Table of Contents</h2>
-        <button id="close-toc-btn" class="text-[#475569] hover:text-[#1E293B] transition-colors"><i data-lucide="x"></i></button>
-      </div>
-      <div id="toc-list" class="flex-1 overflow-y-auto p-4 custom-scrollbar text-[#1E293B] space-y-1 text-sm">
-         <div class="text-[#475569] text-center mt-10">No chapters found yet.</div>
-      </div>
-    </div>
+        <!-- Embedded Interactive Preview Area -->
+        <div id="live-preview-wrapper" class="hidden border border-[#E8DEF8] rounded-xl overflow-hidden bg-[#FAF8F5]">
+          <div class="bg-white border-b border-[#E8DEF8] px-4 py-2.5 flex justify-between items-center text-xs font-bold text-slate-700">
+            <span class="flex items-center gap-2">
+              <i data-lucide="monitor-play" class="w-4 h-4 text-[#A8C3A8]"></i>
+              Live Interactive Flipbook Test
+            </span>
+            <button id="btn-close-live-preview" class="p-1 text-slate-400 hover:text-slate-800">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <iframe id="live-preview-iframe" class="w-full h-[500px] border-none bg-[#FAF8F5]"></iframe>
+        </div>
 
-    <!-- TOC Toggle Button -->
-    <button id="toc-toggle-btn" class="hidden absolute top-4 right-4 z-40 bg-[#FAF8F5] hover:bg-[#E8DEF8] border border-[#E8DEF8] text-[#1E293B] rounded-lg p-3 shadow-lg transition-colors">
-      <i data-lucide="menu"></i>
-    </button>
-
-    <!-- Auto-Resume FAB -->
-    <button id="resume-reading-fab" class="hidden fixed bottom-6 right-6 z-50 bg-[#E8B4B8] hover:bg-[#D8B4E2] text-[#1E293B] font-bold px-4 py-3 rounded-full shadow-2xl transition-all border border-[#FFFFFF]/80 flex items-center gap-2 text-xs md:text-sm active:scale-95 animate-bounce cursor-pointer">
-      <span>🔙 Go back to last Read page</span>
-    </button>
-
-    <!-- Floating Smart Term Tooltip Card -->
-    <div id="smart-term-tooltip" class="hidden fixed z-[9999] max-w-xs md:max-w-sm bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-[#E8DEF8] text-[#1E293B] text-xs md:text-sm transition-all duration-150">
-      <div class="flex items-center justify-between pb-2 mb-2 border-b border-[#E8DEF8]">
-        <span id="tooltip-term-title" class="font-bold text-[#E8B4B8] text-sm md:text-base">Term</span>
-        <button id="close-tooltip-btn" class="text-slate-400 hover:text-slate-600 font-bold px-1.5 py-0.5 rounded text-xs cursor-pointer">&times;</button>
       </div>
-      <p id="tooltip-term-def" class="text-slate-600 mb-2 leading-relaxed">Definition</p>
-      <div id="tooltip-term-mnemonic-container" class="hidden bg-[#FAF8F5] p-2.5 rounded-lg border border-[#A8C3A8]/40 text-[#6A8C6A] text-xs">
-        <strong class="font-semibold block mb-0.5">🧠 Memory Trick:</strong>
-        <span id="tooltip-term-mnemonic">Mnemonic</span>
-      </div>
-    </div>
+
+    </section>
 
   </main>
 
+  <!-- Footer -->
+  <footer id="main-footer" class="mt-auto border-t border-[#E8DEF8] bg-white py-4 px-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>PDF Flipbook Converter Pro • Standalone HTML Generator</p>
+      <p class="text-[11px] text-slate-400">Powered by PDF.js & StPageFlip • Zero API Dependencies</p>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT APP LOGIC -->
   <script>
-    // Initialize icons
+    // State Variables
+    let currentPdfDoc = null;
+    let selectedFile = null;
+    let renderedPagesData = []; // Array of { pageNum, width, height, dataUrl }
+    let generatedHtmlString = "";
+    let isConverting = false;
+
+    // DOM Elements
+    const pdfFileInput = document.getElementById('pdf-file-input');
+    const pdfDropzone = document.getElementById('pdf-dropzone');
+    const dropzonePrompt = document.getElementById('dropzone-prompt');
+    const selectedFileCard = document.getElementById('selected-file-card');
+    const fileNameTxt = document.getElementById('file-name-txt');
+    const fileMetaTxt = document.getElementById('file-meta-txt');
+    const btnRemovePdf = document.getElementById('btn-remove-pdf');
+
+    const qualityPresetSelect = document.getElementById('quality-preset');
+    const qualityBadge = document.getElementById('quality-badge');
+    const jpegQualitySlider = document.getElementById('jpeg-quality-slider');
+    const jpegQualityVal = document.getElementById('jpeg-quality-val');
+    const pageRangeSelect = document.getElementById('page-range-select');
+    const customRangeBox = document.getElementById('custom-range-box');
+    const customRangeInput = document.getElementById('custom-range-input');
+    const ebookTitleInput = document.getElementById('ebook-title-input');
+    const ebookAuthorInput = document.getElementById('ebook-author-input');
+
+    const btnStartConvert = document.getElementById('btn-start-convert');
+    const btnQuickSample = document.getElementById('btn-quick-sample');
+
+    const cardIdleInfo = document.getElementById('card-idle-info');
+    const cardConversionProgress = document.getElementById('card-conversion-progress');
+    const cardConversionSuccess = document.getElementById('card-conversion-success');
+
+    const progressTitleTxt = document.getElementById('progress-title-txt');
+    const progressSubtitleTxt = document.getElementById('progress-subtitle-txt');
+    const progressPctBadge = document.getElementById('progress-pct-badge');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const pageCountStatus = document.getElementById('page-count-status');
+    const liveThumbGrid = document.getElementById('live-thumb-grid');
+
+    const step1Badge = document.getElementById('step-1-badge');
+    const step2Badge = document.getElementById('step-2-badge');
+    const step3Badge = document.getElementById('step-3-badge');
+
+    const successSummaryTxt = document.getElementById('success-summary-txt');
+    const exportSizeBadge = document.getElementById('export-size-badge');
+    const btnDownloadHtml = document.getElementById('btn-download-html');
+    const btnLaunchPreview = document.getElementById('btn-launch-preview');
+    const btnConvertAnother = document.getElementById('btn-convert-another');
+    const livePreviewWrapper = document.getElementById('live-preview-wrapper');
+    const livePreviewIframe = document.getElementById('live-preview-iframe');
+    const btnCloseLivePreview = document.getElementById('btn-close-live-preview');
+
+    // Initialize Lucide Icons
     lucide.createIcons();
 
-    function waitForVisibility() {
-      if (!document.hidden) return Promise.resolve();
-      return new Promise(resolve => {
-        const handler = () => {
-          if (!document.hidden) {
-            document.removeEventListener('visibilitychange', handler);
-            resolve();
-          }
-        };
-        document.addEventListener('visibilitychange', handler);
-      });
-    }
-
-    // RAW REGEX CLEANER BEFORE RENDERING (KILL PAGE NUMBERS IN TEXT)
-    function cleanPdfText(text) {
-      if (!text) return '';
-      return text
-        // Strip common "Page X of Y", "Page X out of Y", "Page X/Y"
-        .replace(/\b(?:Page|PAGE|p\.|P\.)\s*\d+\s*(?:of|OF|\/|out of)\s*\d+\b/gi, '')
-        // Strip common "Page X" patterns
-        .replace(/\b(?:Page|PAGE|p\.|P\.)\s*\d+\b/gi, '')
-        // Strip patterns like "10 | Page" or "Page | 10" or "10|Page"
-        .replace(/\b\d+\s*\|\s*(?:Page|PAGE)\b/gi, '')
-        .replace(/\b(?:Page|PAGE)\s*\|\s*\d+\b/gi, '')
-        // Strip bracketed, parenthesized or hyphenated page numbers, e.g., "- 5 -", "[ Page 10 ]", "( 12 )"
-        .replace(/[-–—\[\{\(]\s*(?:Page|PAGE)?\s*\d+\s*[-–—\]\}\)]/gi, '')
-        // Strip bare fractions, e.g., "12 / 240"
-        .replace(/\b\d+\s*\/\s*\d+\b/g, '')
-        // Strip lines containing only numbers (standalone page numbers)
-        .replace(/^\s*\d+\s*$/gm, '')
-        // Strip running headers/footers with copyright / all rights reserved notices
-        .replace(/\b(?:all rights reserved|copyright\s*©?|©)\s*\d*.*/gi, '')
-        // Replace multiple spaces and excess whitespace
-        .replace(/[ \t]{2,}/g, ' ')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-    }
-
-    // IndexedDB wrapper
-    const DB_NAME = 'ebook-ify-db';
-    const DB_VERSION = 1;
-    let db = null;
-
-    function initDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = event => reject(event.target.error);
-        request.onsuccess = event => { db = event.target.result; resolve(db); };
-        request.onupgradeneeded = event => {
-          const database = event.target.result;
-          if (!database.objectStoreNames.contains('pipelineState')) {
-            database.createObjectStore('pipelineState', { keyPath: 'id' });
-          }
-        };
-      });
-    }
-
-    function saveStateToDB(state) {
-      return new Promise((resolve, reject) => {
-        if (!db) return resolve();
-        const transaction = db.transaction(['pipelineState'], 'readwrite');
-        const store = transaction.objectStore('pipelineState');
-        const request = store.put({ id: 'current', ...state });
-        request.onsuccess = () => resolve();
-        request.onerror = event => reject(event.target.error);
-      });
-    }
-
-    function loadStateFromDB() {
-      return new Promise((resolve, reject) => {
-        if (!db) return resolve(null);
-        const transaction = db.transaction(['pipelineState'], 'readonly');
-        const store = transaction.objectStore('pipelineState');
-        const request = store.get('current');
-        request.onsuccess = event => resolve(event.target.result);
-        request.onerror = event => reject(event.target.error);
-      });
-    }
-
-    function clearStateFromDB() {
-      localStorage.removeItem('ebook_progress_filename');
-      localStorage.removeItem('ebook_progress_data');
-      return new Promise((resolve, reject) => {
-        if (!db) return resolve();
-        const transaction = db.transaction(['pipelineState'], 'readwrite');
-        const store = transaction.objectStore('pipelineState');
-        const request = store.delete('current');
-        request.onsuccess = () => resolve();
-        request.onerror = event => reject(event.target.error);
-      });
-    }
-
-    // Call initDB early
-    let resumeState = null;
-    let explicitStartFresh = false;
-    
-    initDB().then(async () => {
-      resumeState = await loadStateFromDB();
-      if (resumeState && resumeState.batchesCompleted > 0) {
-        if (resumeState.batchesCompleted < resumeState.totalBatches) {
-          document.getElementById('progress-title').innerText = 'Pipeline Paused';
-          document.getElementById('progress-subtitle').innerText = `Unfinished process detected for ${resumeState.filename}`;
-
-          processBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Resume Pipeline';
-          processBtn.classList.add('bg-[#E8B4B8]', 'hover:bg-[#D8B4E2]', 'text-white');
-          processBtn.classList.remove('bg-[#D8B4E2]', 'hover:bg-[#E8B4B8]');
-          processBtn.disabled = false;
-          startFreshBtn.style.display = 'flex';
-          lucide.createIcons();
-        } else {
-          // Completed book! Restore the completed ebook directly from DB
-          console.log("Restoring completed book from IndexedDB...");
-          generatedHtmlPagesByBatch = resumeState.generatedHtmlPagesByBatch || [];
-          batchesCompleted = resumeState.batchesCompleted;
-          currentBatch = resumeState.currentBatch;
-          totalBatches = resumeState.totalBatches;
-          BATCH_SIZE = resumeState.batchSize || 20;
-
-          // Re-assemble generatedHtmlPages in order
-          generatedHtmlPages = [];
-          for (let i = 0; i < totalBatches; i++) {
-            if (generatedHtmlPagesByBatch[i]) {
-              generatedHtmlPages = generatedHtmlPages.concat(generatedHtmlPagesByBatch[i]);
-            }
-          }
-
-          // Set UI to Complete state
-          progressBar.style.width = '100%';
-          if (progressPercent) progressPercent.innerText = '100%';
-          progressText.innerText = 'Processing Complete!';
-          pauseBtn.style.display = 'none';
-          processBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Complete';
-          document.getElementById('progress-title').innerText = 'Synthesis Complete';
-          document.getElementById('progress-subtitle').innerText = 'Book generated successfully';
-          document.getElementById('download-container').classList.remove('hidden');
-          downloadBtn.disabled = false;
-          startFreshBtn.style.display = 'flex';
-
-          // Initialize flipbook
-          if (generatedHtmlPages.length > 0) {
-            initFlipbook();
-          }
-          lucide.createIcons();
-        }
-      } else {
-        resumeState = null;
-      }
-    }).catch(e => console.warn('Failed to init IndexedDB', e));
-
-    // Elements
-    const apiKeyInput = document.getElementById('api-key-input');
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('file-input');
-    const fileNameDisplay = document.getElementById('file-name-display');
-    const processBtn = document.getElementById('process-btn');
-    const startFreshBtn = document.getElementById('start-fresh-btn');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const progressText = document.getElementById('progress-text');
-    const pauseBtn = document.getElementById('pause-btn');
-    const pauseIcon = document.getElementById('pause-icon');
-    const pauseText = document.getElementById('pause-text');
-    const downloadBtn = document.getElementById('download-btn');
-    const emptyState = document.getElementById('empty-state');
-    const flipbookContainer = document.getElementById('flipbook-container');
-    const tocDrawer = document.getElementById('toc-drawer');
-    const tocToggleBtn = document.getElementById('toc-toggle-btn');
-    const closeTocBtn = document.getElementById('close-toc-btn');
-    const resumeFab = document.getElementById('resume-reading-fab');
-    
-    // TOC Drawer Logic
-    tocToggleBtn.addEventListener('click', () => {
-      tocDrawer.classList.remove('translate-x-full');
+    // Event Listeners for File Selection
+    pdfDropzone.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-remove-pdf')) return;
+      pdfFileInput.click();
     });
-    closeTocBtn.addEventListener('click', () => {
-      tocDrawer.classList.add('translate-x-full');
-    });
-    
-    // State
-    let apiKey = localStorage.getItem('gemini_api_key') || '';
-    if (apiKey) apiKeyInput.value = apiKey;
-    
-    let openRouterKeys = [];
-    let groqKeys = [];
-    let geminiKeys = [];
-    let keyUsage = {};
 
-    function parseApiKeys(keysString) {
-      const keys = keysString.split(/[\s,]+/).map(k => k.trim()).filter(k => k.length > 0);
-      openRouterKeys = keys.filter(k => k.startsWith('sk-or-v1-'));
-      groqKeys = keys.filter(k => k.startsWith('gsk_'));
-      geminiKeys = keys.filter(k => !k.startsWith('sk-or-v1-') && !k.startsWith('gsk_'));
-      
-      keys.forEach(k => {
-        if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-      });
-    }
-
-    async function getAvailableKeyForProvider(targetProvider) {
-      const now = Date.now();
-      if (targetProvider === 'openrouter') {
-        for (const k of openRouterKeys) {
-          if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-          if (now > keyUsage[k].cooldownUntil) return { key: k, provider: 'openrouter' };
-        }
-      } else if (targetProvider === 'groq') {
-        for (const k of groqKeys) {
-          if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-          if (now > keyUsage[k].cooldownUntil) return { key: k, provider: 'groq' };
-        }
-      } else if (targetProvider === 'gemini') {
-        for (const k of geminiKeys) {
-          if (!keyUsage[k]) keyUsage[k] = { count: 0, resetTime: 0, cooldownUntil: 0 };
-          let usage = keyUsage[k];
-          if (now > usage.cooldownUntil) {
-            if (now > usage.resetTime) {
-              usage.count = 0;
-              usage.resetTime = now + 60000;
-            }
-            if (usage.count < 15) return { key: k, provider: 'gemini' };
-          }
-        }
-      }
-      return null;
-    }
-
-    async function getAvailableKey() {
-      return (await getAvailableKeyForProvider('openrouter')) ||
-             (await getAvailableKeyForProvider('groq')) ||
-             (await getAvailableKeyForProvider('gemini'));
-    }
-
-    function recordGeminiUsage(key) {
-      if (keyUsage[key]) keyUsage[key].count++;
-    }
-    
-    function setKeyCooldown(key) {
-      if (keyUsage[key]) {
-        keyUsage[key].cooldownUntil = Date.now() + 60000; // 1 min cooldown
-      }
-    }
-
-    function rotateKey(provider) {
-       if (provider === 'openrouter' && openRouterKeys.length > 0) openRouterKeys.push(openRouterKeys.shift());
-       if (provider === 'groq' && groqKeys.length > 0) groqKeys.push(groqKeys.shift());
-       if (provider === 'gemini' && geminiKeys.length > 0) geminiKeys.push(geminiKeys.shift());
-    }
-
-    let currentFile = null;
-    let isProcessing = false;
-    let isPaused = false;
-    let currentBatch = 0;
-    let totalBatches = 0;
-    let totalPages = 0;
-    let batchesCompleted = 0;
-    let generatedHtmlPagesByBatch = [];
-    let BATCH_SIZE = 20;
-    
-    const openRouterModels = ['openrouter/free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwen-2.5-72b-instruct:free'];
-    const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-    const geminiModels = ['gemini-3.5-flash', 'gemini-3.6-flash'];
-
-    let orModelIdx = 0;
-    let groqModelIdx = 0;
-    let geminiModelIdx = 0;
-
-    function updateLiveBadge(provider, model, myBatch) {
-      const badge = document.getElementById('live-badge');
-      if (badge) {
-        badge.innerHTML = `Batch ${myBatch + 1}: Processing via <strong>${provider}</strong> - ${model}`;
-      }
-    }
-    
-    let generatedHtmlPages = [];
-    let finalRenderedPages = [];
-    let pageFlipInstance = null;
-    let pdfDoc = null;
-
-    // API Key Handling
-    let isKeysLocked = true;
-    const keyLockOverlay = document.getElementById('key-lock-overlay');
-    apiKeyInput.style.filter = 'blur(6px)';
-    apiKeyInput.readOnly = true;
-
-    keyLockOverlay.addEventListener('click', (e) => {
-      if (isKeysLocked) {
-        const pwd = prompt("Enter password to view/edit keys:");
-        if (pwd === "135792") {
-          isKeysLocked = false;
-          keyLockOverlay.classList.add('hidden');
-          apiKeyInput.style.filter = 'none';
-          apiKeyInput.classList.remove('select-none');
-          apiKeyInput.readOnly = false;
-          apiKeyInput.focus();
-        } else if (pwd !== null) {
-          alert("Incorrect password.");
-        }
+    pdfFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelect(e.target.files[0]);
       }
     });
 
-    document.addEventListener('click', (e) => {
-      if (!isKeysLocked && e.target !== apiKeyInput && !keyLockOverlay.contains(e.target)) {
-         if (apiKeyInput.value.trim() !== '') {
-           isKeysLocked = true;
-           keyLockOverlay.classList.remove('hidden');
-           apiKeyInput.style.filter = 'blur(6px)';
-           apiKeyInput.classList.add('select-none');
-           apiKeyInput.readOnly = true;
-         }
-      }
-    });
-
-    apiKeyInput.addEventListener('input', (e) => {
-      apiKey = e.target.value.trim();
-      localStorage.setItem('gemini_api_key', apiKey);
-    });
-
-    // File Handling
-    function handleFile(file) {
-      if (file && file.type === 'application/pdf') {
-        currentFile = file;
-        fileNameDisplay.innerText = `${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
-        
-        // When a user selects a new PDF, clear old state immediately.
-        resumeState = null;
-        clearStateFromDB();
-        processBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Start Processing';
-        processBtn.classList.remove('bg-[#E8B4B8]', 'hover:bg-[#D8B4E2]', 'text-white');
-        processBtn.classList.add('bg-[#D8B4E2]', 'hover:bg-[#E8B4B8]', 'text-white');
-        startFreshBtn.style.display = 'none';
-        lucide.createIcons();
-        
-        processBtn.disabled = false;
-      }
-    }
-
-    dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-[#A8C3A8]'); });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-[#A8C3A8]'));
-    dropzone.addEventListener('drop', (e) => {
+    // Drag and Drop
+    pdfDropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropzone.classList.remove('border-[#A8C3A8]');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-    });
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+      pdfDropzone.classList.add('border-[#E8B4B8]', 'bg-[#FAF8F5]');
     });
 
-    // Pause/Resume
-    pauseBtn.addEventListener('click', () => {
-      isPaused = !isPaused;
-      if (isPaused) {
-        pauseIcon.setAttribute('data-lucide', 'play');
-        pauseText.innerText = 'Resume';
-      } else {
-        pauseIcon.setAttribute('data-lucide', 'pause');
-        pauseText.innerText = 'Pause';
-        processNextBatch(); // Resume loop
-      }
-      lucide.createIcons();
+    pdfDropzone.addEventListener('dragleave', () => {
+      pdfDropzone.classList.remove('border-[#E8B4B8]', 'bg-[#FAF8F5]');
     });
 
-    // Auto-Resume FAB Logic
-    function checkResumeFab() {
-      if (!resumeFab) return;
-      const lastRead = localStorage.getItem('lastReadPage') || localStorage.getItem('ebook_last_read_page');
-      if (lastRead !== null && pageFlipInstance) {
-        const pIdx = parseInt(lastRead, 10);
-        if (!isNaN(pIdx) && pIdx > 0 && pIdx < pageFlipInstance.getPageCount()) {
-          resumeFab.classList.remove('hidden');
-          resumeFab.style.display = 'flex';
-          lucide.createIcons();
-          return;
-        }
-      }
-      resumeFab.classList.add('hidden');
-      resumeFab.style.display = 'none';
-    }
-
-    resumeFab.addEventListener('click', () => {
-      const lastRead = localStorage.getItem('lastReadPage') || localStorage.getItem('ebook_last_read_page');
-      if (lastRead !== null && pageFlipInstance) {
-        const pIdx = parseInt(lastRead, 10);
-        pageFlipInstance.turnToPage(pIdx);
-        resumeFab.classList.add('hidden');
-        resumeFab.style.display = 'none';
-      }
-    });
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        checkResumeFab();
-      }
-    });
-
-    // Dynamic client-side DOM measuring paginator to prevent text cutoffs and slice errors
-    function paginateHtml(htmlArray) {
-      if (!htmlArray || htmlArray.length === 0) return [];
-
-      const parser = new DOMParser();
-      const allElements = [];
-
-      // Parse and collect all top-level elements across all raw pages, avoiding footers
-      htmlArray.forEach(pageHtml => {
-        const doc = parser.parseFromString(pageHtml, 'text/html');
-        const sourcePages = doc.querySelectorAll('.ebook-page-content');
-        const elementsToProcess = sourcePages.length > 0 ? Array.from(sourcePages) : [doc.body];
-
-        elementsToProcess.forEach(page => {
-          Array.from(page.children).forEach(child => {
-            if (child.classList.contains('page-footer')) return;
-            allElements.push(child.cloneNode(true));
-          });
-        });
-      });
-
-      const paginatedPages = [];
-
-      // Hidden measurement container
-      const measureContainer = document.createElement('div');
-      measureContainer.style.position = 'absolute';
-      measureContainer.style.visibility = 'hidden';
-      measureContainer.style.pointerEvents = 'none';
-      measureContainer.style.width = '450px';
-      measureContainer.style.height = '600px';
-      measureContainer.style.boxSizing = 'border-box';
-      document.body.appendChild(measureContainer);
-
-      const createNewPageElement = () => {
-        const p = document.createElement('div');
-        p.className = 'ebook-page-content';
-        p.style.width = '100%';
-        p.style.height = '100%';
-        p.style.boxSizing = 'border-box';
-        return p;
-      };
-
-      let currentPageEl = createNewPageElement();
-      measureContainer.appendChild(currentPageEl);
-
-      // Target ~85-90% vertical height (530px out of 600px container)
-      const maxPageHeight = 530;
-
-      const startNewPage = () => {
-        if (currentPageEl.children.length > 0) {
-          paginatedPages.push(currentPageEl.outerHTML);
-        }
-        measureContainer.innerHTML = '';
-        currentPageEl = createNewPageElement();
-        measureContainer.appendChild(currentPageEl);
-      };
-
-      const isHeading = (el) => {
-        if (!el || !el.tagName) return false;
-        const tag = el.tagName.toUpperCase();
-        if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(tag)) return true;
-        if (el.classList && (el.classList.contains('chapter-title') || el.classList.contains('section-header'))) return true;
-        return false;
-      };
-
-      const splitAndAddParagraph = (pElement) => {
-        const text = pElement.innerText || '';
-        const words = text.split(/\s+/).filter(w => w.length > 0);
-        if (words.length === 0) return;
-
-        // Check if paragraph fits completely as-is
-        const cloneP = pElement.cloneNode(true);
-        currentPageEl.appendChild(cloneP);
-
-        if (currentPageEl.scrollHeight <= maxPageHeight) {
-          return; // Paragraph fits in full!
-        }
-
-        // Paragraph overflows, remove the full clone
-        currentPageEl.removeChild(cloneP);
-
-        // Try binary search to fit as many words as possible on current page
-        const testP = document.createElement('p');
-        if (pElement.className) testP.className = pElement.className;
-        currentPageEl.appendChild(testP);
-
-        let low = 1, high = words.length, bestFitCount = 0;
-
-        while (low <= high) {
-          const mid = Math.floor((low + high) / 2);
-          testP.innerText = words.slice(0, mid).join(' ');
-          if (currentPageEl.scrollHeight <= maxPageHeight) {
-            bestFitCount = mid;
-            low = mid + 1;
-          } else {
-            high = mid - 1;
-          }
-        }
-
-        if (bestFitCount > 0 && bestFitCount < words.length) {
-          testP.innerText = words.slice(0, bestFitCount).join(' ');
-          startNewPage();
-
-          const remainingP = document.createElement('p');
-          if (pElement.className) remainingP.className = pElement.className;
-          remainingP.innerText = words.slice(bestFitCount).join(' ');
-          splitAndAddParagraph(remainingP);
-        } else if (bestFitCount === 0) {
-          currentPageEl.removeChild(testP);
-
-          // Orphan Heading Protection: Check if last element on page is a heading
-          const lastChild = currentPageEl.lastElementChild;
-          if (isHeading(lastChild)) {
-            currentPageEl.removeChild(lastChild);
-            startNewPage();
-            currentPageEl.appendChild(lastChild);
-          } else if (currentPageEl.children.length > 0) {
-            startNewPage();
-          }
-
-          const newP = document.createElement('p');
-          if (pElement.className) newP.className = pElement.className;
-          newP.innerText = words.join(' ');
-          splitAndAddParagraph(newP);
+    pdfDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      pdfDropzone.classList.remove('border-[#E8B4B8]', 'bg-[#FAF8F5]');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          handleFileSelect(file);
         } else {
-          testP.innerText = words.join(' ');
+          alert('Please select a valid PDF document.');
         }
-      };
-
-      const splitAndAddList = (listElement) => {
-        const listType = listElement.tagName.toLowerCase();
-        const items = Array.from(listElement.querySelectorAll('li'));
-
-        let currentList = document.createElement(listType);
-        if (listElement.className) currentList.className = listElement.className;
-        currentPageEl.appendChild(currentList);
-
-        items.forEach(li => {
-          const clonedLi = li.cloneNode(true);
-          currentList.appendChild(clonedLi);
-
-          if (currentPageEl.scrollHeight > maxPageHeight) {
-            currentList.removeChild(clonedLi);
-
-            if (currentList.children.length > 0) {
-              startNewPage();
-              currentList = document.createElement(listType);
-              if (listElement.className) currentList.className = listElement.className;
-              currentPageEl.appendChild(currentList);
-              currentList.appendChild(clonedLi);
-            } else {
-              currentList.appendChild(clonedLi);
-              startNewPage();
-              currentList = document.createElement(listType);
-              if (listElement.className) currentList.className = listElement.className;
-              currentPageEl.appendChild(currentList);
-            }
-          }
-        });
-      };
-
-      const splitAndAddTable = (tableElement) => {
-        const rows = Array.from(tableElement.querySelectorAll('tr'));
-        const headers = Array.from(tableElement.querySelectorAll('th'));
-
-        let currentWrapper = document.createElement('div');
-        currentWrapper.className = 'ebook-table-wrapper';
-        let currentTable = document.createElement('table');
-        if (tableElement.className) currentTable.className = tableElement.className;
-        currentWrapper.appendChild(currentTable);
-
-        const appendHeaders = (table) => {
-          if (headers.length > 0) {
-            const thead = document.createElement('thead');
-            const hRow = document.createElement('tr');
-            headers.forEach(h => hRow.appendChild(h.cloneNode(true)));
-            thead.appendChild(hRow);
-            table.appendChild(thead);
-          }
-        };
-
-        currentPageEl.appendChild(currentWrapper);
-        appendHeaders(currentTable);
-
-        let tbody = document.createElement('tbody');
-        currentTable.appendChild(tbody);
-
-        rows.forEach(row => {
-          if (row.querySelector('th')) return;
-
-          const clonedRow = row.cloneNode(true);
-          tbody.appendChild(clonedRow);
-
-          if (currentPageEl.scrollHeight > maxPageHeight) {
-            tbody.removeChild(clonedRow);
-
-            if (tbody.children.length > 0) {
-              startNewPage();
-              currentWrapper = document.createElement('div');
-              currentWrapper.className = 'ebook-table-wrapper';
-              currentTable = document.createElement('table');
-              if (tableElement.className) currentTable.className = tableElement.className;
-              currentWrapper.appendChild(currentTable);
-
-              currentPageEl.appendChild(currentWrapper);
-              appendHeaders(currentTable);
-              tbody = document.createElement('tbody');
-              currentTable.appendChild(tbody);
-              tbody.appendChild(clonedRow);
-            } else {
-              tbody.appendChild(clonedRow);
-              startNewPage();
-              currentWrapper = document.createElement('div');
-              currentWrapper.className = 'ebook-table-wrapper';
-              currentTable = document.createElement('table');
-              if (tableElement.className) currentTable.className = tableElement.className;
-              currentWrapper.appendChild(currentTable);
-
-              currentPageEl.appendChild(currentWrapper);
-              appendHeaders(currentTable);
-              tbody = document.createElement('tbody');
-              currentTable.appendChild(tbody);
-            }
-          }
-        });
-      };
-
-      const addElementToPage = (element) => {
-        const tag = element.tagName ? element.tagName.toLowerCase() : '';
-
-        // Orphan Title Protection: If element is a heading and page is already near bottom (> maxPageHeight - 80), start new page first
-        if (isHeading(element) && currentPageEl.children.length > 0 && currentPageEl.scrollHeight > (maxPageHeight - 80)) {
-          startNewPage();
-        }
-
-        if (tag === 'p') {
-          splitAndAddParagraph(element);
-          return;
-        }
-
-        currentPageEl.appendChild(element);
-
-        if (currentPageEl.scrollHeight > maxPageHeight) {
-          currentPageEl.removeChild(element);
-
-          // Orphan Title Protection: Check if last child is an orphaned heading
-          const lastChild = currentPageEl.lastElementChild;
-          if (isHeading(lastChild)) {
-            currentPageEl.removeChild(lastChild);
-            startNewPage();
-            currentPageEl.appendChild(lastChild);
-          } else if (currentPageEl.children.length > 0) {
-            startNewPage();
-          }
-
-          if (tag === 'ul' || tag === 'ol') {
-            splitAndAddList(element);
-          } else if (tag === 'table' || (element.classList && element.classList.contains('ebook-table-wrapper') && element.querySelector('table'))) {
-            const tableNode = tag === 'table' ? element : element.querySelector('table');
-            splitAndAddTable(tableNode);
-          } else {
-            currentPageEl.appendChild(element);
-            if (currentPageEl.scrollHeight > maxPageHeight && currentPageEl.children.length > 1) {
-              currentPageEl.removeChild(element);
-              startNewPage();
-              currentPageEl.appendChild(element);
-            }
-          }
-        }
-      };
-
-      allElements.forEach(el => {
-        addElementToPage(el);
-      });
-
-      if (currentPageEl.children.length > 0) {
-        paginatedPages.push(currentPageEl.outerHTML);
-      }
-
-      document.body.removeChild(measureContainer);
-      return paginatedPages;
-    }
-
-    // Flipbook Initialization
-    function initFlipbook() {
-      if (pageFlipInstance) {
-        pageFlipInstance.destroy();
-      }
-      
-      emptyState.classList.add('hidden');
-      flipbookContainer.style.display = 'block';
-      flipbookContainer.innerHTML = '';
-      
-      // Adjust progress container if active
-      if (isProcessing) {
-        const board = progressContainer.querySelector('.max-w-2xl');
-        if (board) board.classList.add('scale-95', 'opacity-90');
-      } else {
-        const board = progressContainer.querySelector('.max-w-2xl');
-        if (board) board.classList.remove('scale-95', 'opacity-90');
-      }
-      
-      // Paginate cumulative pages for clean, seamless flow
-      finalRenderedPages = paginateHtml(generatedHtmlPages);
-      const pagesToRender = [...finalRenderedPages];
-
-      // Ensure even number of pages for spreads by appending a blank page if needed
-      if (pagesToRender.length > 0 && pagesToRender.length % 2 !== 0) {
-        pagesToRender.push('<div class="ebook-page-content"></div>');
-      }
-      if (pagesToRender.length < 2) {
-        pagesToRender.push('<div class="ebook-page-content"></div>');
-      }
-
-      let tocHTML = '';
-      pagesToRender.forEach((pageHtml, index) => {
-        const div = document.createElement('div');
-        div.className = 'page';
-        div.innerHTML = pageHtml;
-        
-        // TOC Indexing
-        const headers = div.querySelectorAll('h2, h3');
-        headers.forEach(h => {
-           const isSub = h.tagName.toLowerCase() === 'h3';
-           const text = h.innerText.trim();
-           if (text.length > 0) {
-             tocHTML += `<button onclick="pageFlipInstance.turnToPage(${index})" class="block w-full text-left px-3 py-2 hover:bg-[#FAF8F5] rounded transition-colors ${isSub ? 'pl-6 text-[#475569] text-xs' : 'font-semibold text-[#1E293B]'}">${text}</button>`;
-           }
-        });
-        
-        const contentDiv = div.querySelector('.ebook-page-content');
-        if (contentDiv) {
-           let footer = contentDiv.querySelector('.page-footer');
-           if (!footer) {
-             footer = document.createElement('div');
-             footer.className = 'page-footer';
-             contentDiv.appendChild(footer);
-           }
-           footer.innerText = `Page ${index + 1} of ${pagesToRender.length}`;
-        }
-        
-        flipbookContainer.appendChild(div);
-      });
-      
-      const tocList = document.getElementById('toc-list');
-      if (tocHTML) {
-        tocList.innerHTML = tocHTML;
-      } else {
-        tocList.innerHTML = '<div class="text-[#475569] text-center mt-10">No chapters found yet.</div>';
-      }
-      tocToggleBtn.classList.remove('hidden');
-
-      pageFlipInstance = new St.PageFlip(flipbookContainer, {
-        width: 450,
-        height: 600,
-        size: 'stretch',
-        minWidth: 300,
-        maxWidth: 600,
-        minHeight: 400,
-        maxHeight: 800,
-        maxShadowOpacity: 0.5,
-        showCover: false,
-        mobileScrollSupport: false
-      });
-
-      pageFlipInstance.loadFromHTML(flipbookContainer.querySelectorAll('.page'));
-      
-      pageFlipInstance.on('flip', (e) => {
-         tocDrawer.classList.add('translate-x-full');
-         if (e && e.data !== undefined && e.data >= 0) {
-           localStorage.setItem('ebook_last_read_page', e.data);
-           localStorage.setItem('lastReadPage', e.data);
-         }
-      });
-
-      checkResumeFab();
-    }
-
-    // PDF Extraction & API Calling
-    
-    // Engine Mode Toggle UI Listener
-    const engineModeSelect = document.getElementById('engineModeSelect');
-    const engineStatusText = document.getElementById('engine-status-text');
-    const apiKeyLabel = document.getElementById('api-key-label');
-
-    if (engineModeSelect) {
-      engineModeSelect.addEventListener('change', () => {
-        const val = engineModeSelect.value;
-        if (val === 'webllm') {
-          if (engineStatusText) engineStatusText.innerHTML = `[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>Auto-Rotating Local Models (Llama 3.2 ➔ Qwen 2.5)`;
-          if (apiKeyLabel) apiKeyLabel.innerText = `API KEYS (Optional for WebLLM In-Browser Mode)`;
-        } else {
-          if (engineStatusText) engineStatusText.innerHTML = `[ ACTIVE ROTATION ENGINE ]<br/>OpenRouter ➔ Groq ➔ Gemini (Capped)`;
-          if (apiKeyLabel) apiKeyLabel.innerText = `PASTE ALL API KEYS HERE (Mix OpenRouter, Groq, & Gemini keys)`;
-        }
-      });
-    }
-
-    startFreshBtn.addEventListener('click', () => {
-       explicitStartFresh = true;
-       resumeState = null;
-       clearStateFromDB();
-       localStorage.removeItem('ebook_last_read_page');
-       localStorage.removeItem('lastReadPage');
-       startFreshBtn.style.display = 'none';
-       processBtn.click(); // Trigger start processing
-    });
-
-    processBtn.addEventListener('click', async () => {
-      parseApiKeys(apiKey);
-      const selectedMode = document.getElementById('engineModeSelect')?.value || 'webllm';
-      
-      if (!currentFile && !resumeState) {
-        const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = "[Notice] Please select or upload a PDF file to proceed.";
-        return;
-      }
-      if (selectedMode === 'cloud' && (openRouterKeys.length === 0 && groqKeys.length === 0 && geminiKeys.length === 0)) {
-        const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = "[Notice] Please enter at least one API Key for Cloud API mode.";
-        return;
-      }
-      isProcessing = true;
-      isPaused = false;
-      currentBatch = 0;
-      batchesCompleted = 0;
-      generatedHtmlPages = [];
-      generatedHtmlPagesByBatch = [];
-      processBtn.disabled = true;
-      processBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing...';
-      lucide.createIcons();
-      
-      const board = progressContainer.querySelector('.max-w-2xl');
-      if (board) board.classList.remove('scale-95', 'opacity-90');
-      
-      document.getElementById('progress-title').innerText = 'Ebook Synthesis in Progress';
-      document.getElementById('progress-subtitle').innerText = 'Transforming PDF data into cognitive 3D pages';
-      document.getElementById('live-badge-status').classList.remove('hidden');
-      document.getElementById('pause-btn').style.display = 'flex';
-      
-      try {
-        let arrayBuffer;
-        if (currentFile) {
-          arrayBuffer = await currentFile.arrayBuffer();
-        } else if (resumeState && resumeState.pdfData) {
-          arrayBuffer = resumeState.pdfData;
-        }
-        
-        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        totalPages = pdfDoc.numPages;
-        
-        const batchSelect = document.getElementById('batchSizeSelect');
-        if (batchSelect) {
-          BATCH_SIZE = parseInt(batchSelect.value, 10) || 20;
-        }
-        totalBatches = Math.ceil(totalPages / BATCH_SIZE);
-        
-        let savedState = resumeState;
-        if (currentFile && resumeState && resumeState.filename === currentFile.name) {
-           savedState = resumeState;
-           if (savedState.batchSize) {
-             BATCH_SIZE = savedState.batchSize;
-             if (batchSelect) batchSelect.value = String(BATCH_SIZE);
-             totalBatches = Math.ceil(totalPages / BATCH_SIZE);
-           }
-        } else if (currentFile) {
-           savedState = null;
-        }
-
-        if (savedState && savedState.batchesCompleted > 0 && savedState.batchesCompleted < totalBatches && savedState.totalBatches === totalBatches) {
-          console.log("Resuming from saved state...");
-          batchesCompleted = savedState.batchesCompleted;
-          generatedHtmlPagesByBatch = savedState.generatedHtmlPagesByBatch || [];
-          
-          // Find first uncompleted batch
-          currentBatch = 0;
-          while (currentBatch < totalBatches && generatedHtmlPagesByBatch[currentBatch]) {
-            currentBatch++;
-          }
-          
-          // Re-assemble generatedHtmlPages in order
-          generatedHtmlPages = [];
-          for (let i = 0; i < totalBatches; i++) {
-            if (generatedHtmlPagesByBatch[i]) {
-              generatedHtmlPages = generatedHtmlPages.concat(generatedHtmlPagesByBatch[i]);
-            }
-          }
-          
-          if (generatedHtmlPages.length > 0) {
-            initFlipbook();
-            document.getElementById('download-container').classList.remove('hidden');
-            downloadBtn.disabled = false;
-          }
-        }
-        
-        // Save initial state if new
-        if (!savedState) {
-           saveStateToDB({
-             filename: currentFile.name,
-             pdfData: arrayBuffer,
-             generatedHtmlPagesByBatch: [],
-             batchesCompleted: 0,
-             currentBatch: 0,
-             totalBatches,
-             batchSize: BATCH_SIZE
-           }).catch(e => console.warn('DB Error', e));
-        }
-
-        const numStreams = 1;
-        
-        // Calculate remaining streams
-        const remaining = totalBatches - currentBatch;
-        const actualStreams = Math.min(numStreams, remaining);
-        
-        if (actualStreams <= 0) {
-           finishProcessing();
-           return;
-        }
-        
-        for (let i = 0; i < actualStreams; i++) {
-          processNextBatch();
-        }
-      } catch (err) {
-        console.error("PDF Load Error:", err);
-        const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = `[Notice] Error loading PDF: ${err.message}`;
-        resetState();
       }
     });
 
-    // Local store for extracted PDF images (mapped by [[PDF_IMAGE_PAGEX_IMGY]])
-    const extractedPdfImages = {};
+    btnRemovePdf.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetFileSelection();
+    });
 
-    async function extractImagesFromPdfPage(page, pageNum) {
-      const imageAnchors = [];
-      try {
-        const operatorList = await page.getOperatorList();
-        const paintOps = [
-          pdfjsLib.OPS.paintImageXObject,
-          pdfjsLib.OPS.paintInlineImageXObject,
-          pdfjsLib.OPS.paintImageXObjectRepeat
-        ];
-
-        let imgIndex = 1;
-        const processedImgNames = new Set();
-
-        for (let i = 0; i < operatorList.fnArray.length; i++) {
-          if (paintOps.includes(operatorList.fnArray[i])) {
-            const imgName = operatorList.argsArray[i][0];
-            if (!imgName || processedImgNames.has(imgName)) continue;
-            processedImgNames.add(imgName);
-
-            let imgObj = null;
-            try {
-              if (page.objs && page.objs.has(imgName)) {
-                imgObj = page.objs.get(imgName);
-              } else if (page.commonObjs && page.commonObjs.has(imgName)) {
-                imgObj = page.commonObjs.get(imgName);
-              }
-            } catch (e) {
-              // ignore
-            }
-
-            if (imgObj && imgObj.width > 50 && imgObj.height > 50) {
-              const canvas = document.createElement('canvas');
-              canvas.width = imgObj.width;
-              canvas.height = imgObj.height;
-              const ctx = canvas.getContext('2d');
-
-              if (imgObj.data) {
-                let imgData;
-                if (imgObj.data.length === imgObj.width * imgObj.height * 4) {
-                  imgData = new ImageData(new Uint8ClampedArray(imgObj.data), imgObj.width, imgObj.height);
-                } else if (imgObj.data.length === imgObj.width * imgObj.height * 3) {
-                  const rgba = new Uint8ClampedArray(imgObj.width * imgObj.height * 4);
-                  for (let src = 0, dest = 0; src < imgObj.data.length; src += 3, dest += 4) {
-                    rgba[dest] = imgObj.data[src];
-                    rgba[dest + 1] = imgObj.data[src + 1];
-                    rgba[dest + 2] = imgObj.data[src + 2];
-                    rgba[dest + 3] = 255;
-                  }
-                  imgData = new ImageData(rgba, imgObj.width, imgObj.height);
-                }
-                if (imgData) {
-                  ctx.putImageData(imgData, 0, 0);
-                  const dataUrl = canvas.toDataURL('image/png');
-                  const anchorKey = `[[PDF_IMAGE_PAGE${pageNum}_IMG${imgIndex}]]`;
-                  extractedPdfImages[anchorKey] = dataUrl;
-                  imageAnchors.push(anchorKey);
-                  imgIndex++;
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn(`Image extraction skipped for page ${pageNum}:`, err);
+    // Option Controls Listeners
+    qualityPresetSelect.addEventListener('change', () => {
+      const val = qualityPresetSelect.value;
+      if (val === 'compact') {
+        qualityBadge.innerText = 'Compact (1.0x DPI)';
+        qualityBadge.className = 'text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200';
+      } else if (val === 'balanced') {
+        qualityBadge.innerText = 'Balanced (1.4x DPI)';
+        qualityBadge.className = 'text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200';
+      } else {
+        qualityBadge.innerText = 'High Quality (1.8x DPI)';
+        qualityBadge.className = 'text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200';
       }
-      return imageAnchors;
+    });
+
+    jpegQualitySlider.addEventListener('input', () => {
+      jpegQualityVal.innerText = `${jpegQualitySlider.value}%`;
+    });
+
+    pageRangeSelect.addEventListener('change', () => {
+      if (pageRangeSelect.value === 'custom') {
+        customRangeBox.classList.remove('opacity-50', 'pointer-events-none');
+        customRangeInput.focus();
+      } else {
+        customRangeBox.classList.add('opacity-50', 'pointer-events-none');
+      }
+    });
+
+    // Sample PDF Loader
+    btnQuickSample.addEventListener('click', async () => {
+      try {
+        btnQuickSample.disabled = true;
+        btnQuickSample.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Loading...`;
+        lucide.createIcons();
+
+        // Create a synthetic sample PDF blob or load standard test PDF
+        const sampleUrl = 'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf';
+        const res = await fetch(sampleUrl);
+        if (!res.ok) throw new Error('Failed to fetch sample');
+        const blob = await res.blob();
+        const file = new File([blob], 'TraceMonkey_Research_Paper.pdf', { type: 'application/pdf' });
+        
+        handleFileSelect(file);
+      } catch (err) {
+        alert('Could not load sample PDF: ' + err.message);
+      } finally {
+        btnQuickSample.disabled = false;
+        btnQuickSample.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E8B4B8]"></i> Load Sample Doc`;
+        lucide.createIcons();
+      }
+    });
+
+    // Start Conversion Trigger
+    btnStartConvert.addEventListener('click', startConversion);
+
+    btnDownloadHtml.addEventListener('click', downloadStandaloneHtml);
+
+    btnLaunchPreview.addEventListener('click', () => {
+      livePreviewWrapper.classList.remove('hidden');
+      livePreviewIframe.srcdoc = generatedHtmlString;
+      livePreviewWrapper.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    btnCloseLivePreview.addEventListener('click', () => {
+      livePreviewWrapper.classList.add('hidden');
+      livePreviewIframe.srcdoc = '';
+    });
+
+    btnConvertAnother.addEventListener('click', () => {
+      cardConversionSuccess.classList.add('hidden');
+      cardIdleInfo.classList.remove('hidden');
+      resetFileSelection();
+    });
+
+    // File Handler Function
+    async function handleFileSelect(file) {
+      selectedFile = file;
+      fileNameTxt.innerText = file.name;
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      fileMetaTxt.innerText = `${sizeMB} MB • Reading document pages...`;
+
+      dropzonePrompt.classList.add('hidden');
+      selectedFileCard.classList.remove('hidden');
+
+      // Default Title from file name
+      const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+      if (!ebookTitleInput.value) ebookTitleInput.value = cleanTitle;
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        currentPdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        fileMetaTxt.innerText = `${sizeMB} MB • ${currentPdfDoc.numPages} Pages detected`;
+
+        // Enable convert button
+        btnStartConvert.disabled = false;
+        btnStartConvert.className = 'w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer';
+      } catch (err) {
+        fileMetaTxt.innerText = `Error loading PDF: ${err.message}`;
+        btnStartConvert.disabled = true;
+      }
     }
 
-    async function processNextBatch() {
-      await waitForVisibility();
-      if (isPaused) return; // Wait for resume
-      
-      while (currentBatch < totalBatches && generatedHtmlPagesByBatch[currentBatch]) {
-          currentBatch++;
-      }
+    function resetFileSelection() {
+      selectedFile = null;
+      currentPdfDoc = null;
+      pdfFileInput.value = '';
+      dropzonePrompt.classList.remove('hidden');
+      selectedFileCard.classList.add('hidden');
 
-      if (currentBatch >= totalBatches) {
-        return;
-      }
+      btnStartConvert.disabled = true;
+      btnStartConvert.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed';
+    }
 
-      const myBatch = currentBatch;
+    // MAIN CONVERSION CONTROLLER
+    async function startConversion() {
+      if (!currentPdfDoc || isConverting) return;
 
-      const startPage = myBatch * BATCH_SIZE + 1;
-      const endPage = Math.min((myBatch + 1) * BATCH_SIZE, totalPages);
-      
-      updateProgressUI(startPage, endPage, myBatch);
+      isConverting = true;
+      renderedPagesData = [];
+      generatedHtmlString = "";
+      liveThumbGrid.innerHTML = "";
+
+      // UI Stage Transitions
+      cardIdleInfo.classList.add('hidden');
+      cardConversionSuccess.classList.add('hidden');
+      livePreviewWrapper.classList.add('hidden');
+      cardConversionProgress.classList.remove('hidden');
+
+      updateProgress(5, "Step 1/3: Parsing PDF Structure...", "Reading page layout and bounding boxes...");
+      setStepActive(step1Badge);
 
       try {
-        let batchText = '';
-        for (let i = startPage; i <= endPage; i++) {
-          const page = await pdfDoc.getPage(i);
-          const content = await page.getTextContent();
+        const totalPagesInDoc = currentPdfDoc.numPages;
+        
+        // Parse custom page range if selected
+        let pagesToRender = [];
+        if (pageRangeSelect.value === 'custom' && customRangeInput.value.trim()) {
+          const rangeStr = customRangeInput.value.trim();
+          const match = rangeStr.match(/^(\d+)\s*-\s*(\d+)$/);
+          if (match) {
+            const start = Math.max(1, parseInt(match[1]));
+            const end = Math.min(totalPagesInDoc, parseInt(match[2]));
+            for (let i = start; i <= end; i++) pagesToRender.push(i);
+          }
+        }
+        if (pagesToRender.length === 0) {
+          for (let i = 1; i <= totalPagesInDoc; i++) pagesToRender.push(i);
+        }
+
+        // Determine Scale Factor from Preset
+        let scaleFactor = 1.4; // default balanced
+        if (qualityPresetSelect.value === 'compact') scaleFactor = 1.0;
+        else if (qualityPresetSelect.value === 'high') scaleFactor = 1.8;
+
+        const jpegQuality = parseInt(jpegQualitySlider.value) / 100;
+
+        setStepActive(step2Badge);
+
+        // Render Pages Sequentially in Batches
+        const totalToProcess = pagesToRender.length;
+        for (let idx = 0; idx < totalToProcess; idx++) {
+          const pageNum = pagesToRender[idx];
           
-          // CLIENT-SIDE NATIVE PDF IMAGE EXTRACTION
-          const imageAnchors = await extractImagesFromPdfPage(page, i);
+          const pct = Math.round(10 + ((idx + 1) / totalToProcess) * 75);
+          updateProgress(pct, `Step 2/3: Rendering Page ${idx + 1} of ${totalToProcess}`, `Converting page ${pageNum} to compressed image buffer...`);
           
-          // STRICT PDF SEQUENTIAL TEXT EXTRACTION (FIX SCRAMBLED CONTENT ORDER)
-          const items = (content.items || []).slice().sort((a, b) => {
-            const yA = a.transform ? a.transform[5] : 0;
-            const yB = b.transform ? b.transform[5] : 0;
-            const xA = a.transform ? a.transform[4] : 0;
-            const xB = b.transform ? b.transform[4] : 0;
-            if (Math.abs(yA - yB) > 8) {
-              return yB - yA; // Top to bottom
-            }
-            return xA - xB; // Left to right
+          const pageObj = await currentPdfDoc.getPage(pageNum);
+          const viewport = pageObj.getViewport({ scale: scaleFactor });
+
+          // Offscreen Canvas
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+
+          await pageObj.render({
+            canvasContext: ctx,
+            viewport: viewport
+          }).promise;
+
+          // Compress to JPEG Data URL
+          const dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+
+          renderedPagesData.push({
+            pageNum: pageNum,
+            width: canvas.width,
+            height: canvas.height,
+            dataUrl: dataUrl
           });
 
-          const rawPageText = items.map(item => item.str).join(' ');
-          const cleanedText = cleanPdfText(rawPageText);
-          if (cleanedText.length > 0) {
-            batchText += cleanedText + '\n';
-            if (imageAnchors.length > 0) {
-              batchText += imageAnchors.join('\n') + '\n\n';
-            } else {
-              batchText += '\n';
-            }
-          } else if (imageAnchors.length > 0) {
-            batchText += imageAnchors.join('\n') + '\n\n';
-          }
+          // Add thumbnail preview item
+          addLiveThumbnail(idx + 1, dataUrl);
+          pageCountStatus.innerText = `${renderedPagesData.length} Pages Processed`;
+
+          // Clean memory references
+          canvas.width = 0;
+          canvas.height = 0;
+
+          // Yield UI thread to keep smooth progress & avoid OOM on huge 95MB+ PDFs
+          await new Promise(r => setTimeout(r, 15));
         }
 
-        const condensedHtmlPages = await callGeminiAPI(batchText, myBatch);
-        
-        // Save pages for this specific batch
-        generatedHtmlPagesByBatch[myBatch] = condensedHtmlPages;
-        
-        // Re-assemble generatedHtmlPages in order
-        generatedHtmlPages = [];
-        for (let i = 0; i < totalBatches; i++) {
-          if (generatedHtmlPagesByBatch[i]) {
-            generatedHtmlPages = generatedHtmlPages.concat(generatedHtmlPagesByBatch[i]);
-          }
-        }
-        
-        // Update Preview
-        if (generatedHtmlPages.length > 0) {
-          initFlipbook();
-        }
+        // Step 3: Package into Standalone HTML Template
+        setStepActive(step3Badge);
+        updateProgress(90, "Step 3/3: Packaging Standalone Ebook...", "Bundling 3D StPageFlip renderer and image assets...");
 
-        batchesCompleted++;
-        currentBatch++;
-        
-        try {
-          loadStateFromDB().then(state => {
-            if (state) {
-              state.generatedHtmlPagesByBatch = generatedHtmlPagesByBatch;
-              state.batchesCompleted = batchesCompleted;
-              state.currentBatch = currentBatch;
-              saveStateToDB(state);
-            }
-          });
-        } catch(e) { console.warn('Failed to save to IndexedDB', e); }
+        const title = ebookTitleInput.value.trim() || 'Interactive Flipbook';
+        const author = ebookAuthorInput.value.trim() || 'PDF Converter Pro';
 
-        document.getElementById('download-container').classList.remove('hidden');
-        downloadBtn.disabled = false; // Allow download of partial results
+        generatedHtmlString = buildStandaloneHtml(title, author, renderedPagesData);
 
-        if (batchesCompleted >= totalBatches) {
-          finishProcessing();
-        } else {
-          // Queue next batch
-          await new Promise(res => setTimeout(res, 2500));
-          processNextBatch();
-        }
+        updateProgress(100, "Conversion Finished!", "Your ebook is ready to download.");
+
+        // Calculate size estimate
+        const bytes = new Blob([generatedHtmlString]).size;
+        const mbSize = (bytes / (1024 * 1024)).toFixed(2);
+
+        exportSizeBadge.innerText = `~${mbSize} MB`;
+        successSummaryTxt.innerText = `Successfully packaged ${renderedPagesData.length} pages into a 100% offline HTML flipbook.`;
+
+        cardConversionProgress.classList.add('hidden');
+        cardConversionSuccess.classList.remove('hidden');
 
       } catch (err) {
-        console.error("Batch error:", err);
-        const noticeMsg = `[Notice] Batch ${myBatch + 1} issue (${err.message}). Retrying silently...`;
-        console.warn(noticeMsg);
-        const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = noticeMsg;
-        
-        await new Promise(res => setTimeout(res, 3000));
-        if (!isPaused) {
-          processNextBatch();
-        }
+        alert("Error during conversion: " + err.message);
+        cardConversionProgress.classList.add('hidden');
+        cardIdleInfo.classList.remove('hidden');
+      } finally {
+        isConverting = false;
       }
     }
 
-    const progressPercent = document.getElementById('progress-percent');
-    
-    function updateProgressUI(startPage, endPage, myBatch) {
-      const percentage = Math.round((batchesCompleted / totalBatches) * 100);
-      progressBar.style.width = `${percentage}%`;
-      if (progressPercent) progressPercent.innerText = `${percentage}%`;
-      progressText.innerText = `Batch ${myBatch + 1} of ${totalBatches} (Pages ${startPage} - ${endPage})`;
-      
-      // If flipbook is already active, we ensure the progress dashboard scales down
-      if (generatedHtmlPages.length > 0) {
-        const board = progressContainer.querySelector('.max-w-2xl');
-        if (board) board.classList.add('scale-95', 'opacity-90');
-      }
+    function updateProgress(pct, title, subtitle) {
+      progressBarFill.style.width = `${pct}%`;
+      progressPctBadge.innerText = `${pct}%`;
+      progressTitleTxt.innerText = title;
+      progressSubtitleTxt.innerText = subtitle;
     }
 
-    // WebLLM Engine Instance, Rotation & Caching
-    let webllmModule = null;
-    let webllmEngine = null;
-    let currentWebllmModel = '';
-
-    const webgpuRotationModels = [
-      { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B' },
-      { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', name: 'Qwen 2.5 1.5B' }
-    ];
-    let activeWebgpuIdx = 0;
-
-    async function checkWebGPUSupport() {
-      if (!navigator.gpu) return false;
-      try {
-        const adapter = await navigator.gpu.requestAdapter();
-        return !!adapter;
-      } catch (e) {
-        return false;
-      }
-    }
-
-    async function getWebLLMEngine(modelName, myBatch) {
-      if (webllmEngine && currentWebllmModel === modelName) {
-        return webllmEngine;
-      }
-      
-      const liveBadge = document.getElementById('live-badge');
-      const progressSubtitle = document.getElementById('progress-subtitle');
-
-      if (!webllmModule) {
-        if (liveBadge) liveBadge.innerText = "[WebLLM Engine] Loading WebLLM runtime library...";
-        webllmModule = await import("https://esm.run/@mlc-ai/web-llm");
-      }
-
-      const initProgressCallback = (report) => {
-        console.log("[WebLLM Progress]", report.text);
-        const statusMsg = `[WebLLM Engine] ${report.text}`;
-        if (liveBadge) liveBadge.innerText = statusMsg;
-        if (progressSubtitle) progressSubtitle.innerText = statusMsg;
-      };
-
-      if (liveBadge) liveBadge.innerText = `[WebLLM Engine] Initializing model ${modelName}...`;
-
-      webllmEngine = await webllmModule.CreateMLCEngine(modelName, {
-        initProgressCallback: initProgressCallback
+    function setStepActive(badgeEl) {
+      [step1Badge, step2Badge, step3Badge].forEach(el => {
+        el.className = "p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium";
       });
-      currentWebllmModel = modelName;
-      return webllmEngine;
+      badgeEl.className = "p-2 rounded-lg bg-[#1E293B] border border-[#1E293B] text-white font-bold shadow-sm";
     }
 
-    async function callGeminiAPI(text, myBatch) {
-      const mode = document.getElementById('engineModeSelect')?.value || 'webllm';
-
-      const fullPrompt = `You are a Senior Review Center Specialist, Lead Academic Author, and Doctorate-Level Educator. Synthesize uploaded text into an engaging, high-yield, interactive review ebook.
-
-DYNAMIC ADAPTIVE RETENTION ENGINE (95% - 100% RETENTION):
-- Dynamically analyze the density, technical depth, and critical nature of the uploaded text.
-- Maintain an absolute minimum retention threshold between 95% and 100%.
-- If deleting or trimming any sentence alters technical accuracy, clinical nuance, or causes reader misinterpretation, retention MUST scale dynamically up to 100%.
-- Strictly forbid removing, dropping, or shortening any topic, detail, clinical protocol, formula, step, or concept from the PDF.
-- Only scrub absolute zero-value fluff or duplicate artifacts. Preserve all underlying knowledge and academic depth fully.
-
-CLIENT-SIDE PDF IMAGE ANCHORS:
-- The input text contains image anchor tags like [[PDF_IMAGE_PAGE1_IMG1]], [[PDF_IMAGE_PAGE2_IMG1]], etc.
-- You MUST preserve every single [[PDF_IMAGE_PAGE#_IMG#]] tag in your response output, placing it in its exact relative contextual location alongside the surrounding text.
-- Do not modify, remove, or renumber image anchors.
-
-DOCTORATE-LEVEL & REVIEW CENTER LEARNING ENGINE:
-- Transform dry, dense textbook passages into an engaging, high-yield, easy-to-learn interactive review ebook format without losing an ounce of academic depth or rigor.
-- Reformat dense material using high-impact visual scaffolds:
-  * High-Yield Key Takeaways: <div class="callout tip"><strong class="font-bold">🎯 High-Yield Key Takeaway:</strong> ...</div>
-  * Clinical/Technical Alerts: <div class="callout warning"><strong class="font-bold">⚡ Clinical/Technical Alert:</strong> ...</div>
-  * Memory Mnemonics: <div class="card glassmorphic"><strong class="font-bold">🧠 Memory Mnemonic / Shortcut:</strong> ...</div>
-  * Structured Step-by-Step Timelines: <div class="timeline">...</div>
-  * Definition Cards: <div class="definition-card">...</div>
-  * Comparison & Matrix Tables: Wrap in <div class="ebook-table-wrapper"><table>...</table></div>
-
-INTERACTIVE INLINE TERM TOOLTIPS (TAP-TO-EXPLAIN):
-- Identify key technical, clinical, or complex terms in the text and wrap them in tooltip mark elements:
-  <mark class="smart-term" data-def="[1-sentence simple definition]" data-mnemonic="[Short memory trick/mnemonic]">[Term Name]</mark>
-
-PAGINATION & HTML FORMATTING:
-- Wrap the generated content in <div class="ebook-page-content"> blocks.
-- Fill 85-90% of vertical space in each page block with rich, comprehensive, structured content.
-- Never let page numbers or running headers from the original PDF bleed into your response.
-- Return raw HTML only without markdown fences or meta commentary.
-
-Text batch:
-${text}`;
-
-      if (mode === 'webllm') {
-        const hasWebGPU = await checkWebGPUSupport();
-        if (!hasWebGPU) {
-          const noticeMsg = `[Notice] Mobile WebGPU not detected. Switching to Cloud API Free Rotation...`;
-          console.warn(noticeMsg);
-          const liveBadge = document.getElementById('live-badge');
-          if (liveBadge) liveBadge.innerText = noticeMsg;
-          return await callCloudApiChain(fullPrompt, text, myBatch);
-        }
-
-        let attempts = 0;
-        while (attempts < webgpuRotationModels.length) {
-          const currentModelObj = webgpuRotationModels[(activeWebgpuIdx + attempts) % webgpuRotationModels.length];
-          try {
-            updateLiveBadge('WebLLM WebGPU', currentModelObj.name, myBatch);
-            const engine = await getWebLLMEngine(currentModelObj.id, myBatch);
-
-            const liveBadge = document.getElementById('live-badge');
-            if (liveBadge) liveBadge.innerText = `[WebLLM Engine] Synthesizing Batch ${myBatch + 1} with ${currentModelObj.name}...`;
-
-            const reply = await engine.chat.completions.create({
-              messages: [{ role: 'user', content: fullPrompt }],
-              temperature: 0.2,
-            });
-
-            const rawHtml = reply.choices?.[0]?.message?.content || '';
-
-            if (rawHtml && rawHtml.trim().length > 0) {
-              return processRawGeneratedHtml(rawHtml);
-            } else {
-              throw new Error(`Empty response from ${currentModelObj.name}`);
-            }
-          } catch (webllmErr) {
-            const nextModelObj = webgpuRotationModels[(activeWebgpuIdx + attempts + 1) % webgpuRotationModels.length];
-            const swapMsg = `[WebLLM Rotation] Swapped from ${currentModelObj.name} to ${nextModelObj.name} for Batch ${myBatch + 1}...`;
-            console.warn(swapMsg, webllmErr);
-            const liveBadge = document.getElementById('live-badge');
-            if (liveBadge) liveBadge.innerText = swapMsg;
-
-            attempts++;
-            activeWebgpuIdx = (activeWebgpuIdx + 1) % webgpuRotationModels.length;
-          }
-        }
-
-        const cloudMsg = `[Notice] WebGPU models exhausted for Batch ${myBatch + 1}. Silently failing over to Cloud API...`;
-        console.warn(cloudMsg);
-        const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = cloudMsg;
-
-        return await callCloudApiChain(fullPrompt, text, myBatch);
-      } else {
-        return await callCloudApiChain(fullPrompt, text, myBatch);
-      }
+    function addLiveThumbnail(pageNum, dataUrl) {
+      const card = document.createElement('div');
+      card.className = "relative rounded border border-[#E8DEF8] overflow-hidden bg-white group shadow-2xs";
+      card.innerHTML = `
+        <img src="${dataUrl}" class="w-full h-16 object-cover" alt="Page ${pageNum}" />
+        <span class="absolute bottom-0.5 right-0.5 bg-slate-900/80 text-white text-[9px] font-mono px-1 rounded">p.${pageNum}</span>
+      `;
+      liveThumbGrid.appendChild(card);
+      liveThumbGrid.scrollTop = liveThumbGrid.scrollHeight;
     }
 
-    async function callCloudApiChain(fullPrompt, text, myBatch) {
-      let rawHtml = '';
-      let outerRetries = 10;
+    function downloadStandaloneHtml() {
+      if (!generatedHtmlString) return;
 
-      while (outerRetries > 0) {
-        await waitForVisibility();
-        let success = false;
-        
-        // Exact Provider Hierarchy: OpenRouter -> Groq -> Gemini
-        const providerList = ['openrouter', 'groq', 'gemini'];
+      const title = (ebookTitleInput.value.trim() || 'Flipbook_Ebook').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `${title}_Standalone.html`;
 
-        for (const provider of providerList) {
-          const keyInfo = await getAvailableKeyForProvider(provider);
-          if (!keyInfo) continue; // Skip to next provider if no keys available or on cooldown
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 18000);
-
-          try {
-            let selectedModel = '';
-            let response;
-            let reqPrompt = fullPrompt;
-
-            if (provider === 'openrouter') {
-              selectedModel = openRouterModels[orModelIdx % openRouterModels.length];
-              updateLiveBadge('OpenRouter', selectedModel, myBatch);
-              response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${keyInfo.key}`
-                },
-                body: JSON.stringify({
-                  model: selectedModel,
-                  messages: [{ role: 'user', content: reqPrompt }],
-                  temperature: 0.2
-                }),
-                signal: controller.signal
-              });
-              orModelIdx++;
-
-            } else if (provider === 'groq') {
-              selectedModel = groqModels[groqModelIdx % groqModels.length];
-              
-              // DYNAMIC TOKEN TRIMMING FOR GROQ:
-              if (reqPrompt.length > 12000) {
-                reqPrompt = `You are a Senior Review Specialist & Doctorate Educator. Synthesize text into an interactive review ebook chapter.
-
-RULES:
-- RETENTION (95%-100%): Retain ALL topics, protocols, formulas, steps, concepts. Remove zero-value fluff only.
-- IMAGE ANCHORS: Preserve ALL [[PDF_IMAGE_PAGE#_IMG#]] tags in exact relative contextual positions.
-- SCAFFOLDS: Use <div class="callout tip">🎯 High-Yield Key Takeaway</div>, <div class="callout warning">⚡ Clinical Alert</div>, <div class="card glassmorphic">🧠 Memory Mnemonic</div>, <div class="timeline">...</div>, <div class="ebook-table-wrapper"><table>...</table></div>.
-- TOOLTIPS: Wrap key terms in <mark class="smart-term" data-def="[Simple definition]" data-mnemonic="[Memory trick]">[Term Name]</mark>.
-- FORMATTING: Wrap in <div class="ebook-page-content">. Fill 85-90% vertical space. Return raw HTML only.
-
-Text batch:
-${cleanPdfText(text)}`;
-              }
-
-              updateLiveBadge('Groq', selectedModel, myBatch);
-              response = await fetch(`https://api.groq.com/openai/v1/chat/completions`, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${keyInfo.key}`
-                },
-                body: JSON.stringify({
-                  model: selectedModel,
-                  messages: [{ role: 'user', content: reqPrompt }],
-                  temperature: 0.2
-                }),
-                signal: controller.signal
-              });
-              groqModelIdx++;
-
-            } else { // Gemini API - strictly standard Google AI Studio free tier
-              selectedModel = geminiModels[geminiModelIdx % geminiModels.length];
-              updateLiveBadge('Gemini Free Tier', selectedModel, myBatch);
-              recordGeminiUsage(keyInfo.key);
-              response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${keyInfo.key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: reqPrompt }] }],
-                  generationConfig: { temperature: 0.2 }
-                }),
-                signal: controller.signal
-              });
-              geminiModelIdx++;
-            }
-
-            if (!response.ok) {
-              const errData = await response.json().catch(() => ({}));
-              const errMsg = errData.error?.message || errData.error || `HTTP ${response.status}`;
-              
-              const noticeMsg = `[Notice] ${provider.toUpperCase()} limit/error (${errMsg}). Silently switching Batch ${myBatch + 1}...`;
-              console.warn(noticeMsg);
-              const liveBadge = document.getElementById('live-badge');
-              if (liveBadge) liveBadge.innerText = noticeMsg;
-
-              setKeyCooldown(keyInfo.key);
-              rotateKey(provider);
-              continue; // Silently failover to next provider
-            }
-
-            const data = await response.json();
-            if (provider === 'gemini') {
-              rawHtml = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            } else {
-              rawHtml = data.choices?.[0]?.message?.content || '';
-            }
-
-            if (rawHtml && rawHtml.trim().length > 0) {
-              rotateKey(provider);
-              success = true;
-              break; // Success!
-            }
-
-          } catch (err) {
-            if (document.hidden) {
-              await waitForVisibility();
-              continue;
-            }
-            const errMsg = err.message || String(err);
-            const noticeMsg = `[Notice] ${provider.toUpperCase()} error (${errMsg}). Silently switching Batch ${myBatch + 1}...`;
-            console.warn(noticeMsg);
-            const liveBadge = document.getElementById('live-badge');
-            if (liveBadge) liveBadge.innerText = noticeMsg;
-
-            setKeyCooldown(keyInfo.key);
-            rotateKey(provider);
-            continue; // Failover to next provider
-          } finally {
-            clearTimeout(timeoutId);
-          }
-        }
-
-        if (success && rawHtml) {
-          break;
-        }
-
-        const waitNotice = `[Notice] Active provider limits reached. Retrying Batch ${myBatch + 1} in 5s...`;
-        console.warn(waitNotice);
-        const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = waitNotice;
-
-        await new Promise(r => setTimeout(r, 5000));
-        outerRetries--;
-      }
-
-      if (!rawHtml) throw new Error("Failed to generate content after failover retries.");
-      return processRawGeneratedHtml(rawHtml);
-    }
-
-    function processRawGeneratedHtml(rawHtml) {
-      // Basic strip of markdown wrappers
-      rawHtml = rawHtml.replace(/```html/gi, '').replace(/```/g, '');
-      
-      // Automatic Quality Control (QC) Sanitizer: STRIP DEBUG SYSTEM LEAKS
-      rawHtml = rawHtml.replace(/User Safety:\s*safe/ig, '').replace(/Model Output:/ig, '');
-
-      // Convert image anchors back to responsive HTML figure elements
-      rawHtml = rawHtml.replace(/\[\[PDF_IMAGE_PAGE\d+_IMG\d+\]\]/g, (match) => {
-        const dataUrl = extractedPdfImages[match];
-        if (dataUrl) {
-          return `<figure class="ebook-img-card my-3 text-center break-inside-avoid max-w-full"><img src="${dataUrl}" class="max-h-52 max-w-full h-auto w-auto mx-auto rounded-xl shadow-md border border-[#E8DEF8] object-contain" alt="PDF Visual" /><figcaption class="text-xs text-[#475569] mt-1 font-medium italic">Extracted Document Figure</figcaption></figure>`;
-        }
-        return '';
-      });
-
-      // Parse the returned HTML to extract individual pages.
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(rawHtml, 'text/html');
-      
-      // Wrap tables
-      const tables = doc.querySelectorAll('table');
-      tables.forEach(table => {
-         if (!table.parentElement.classList.contains('ebook-table-wrapper')) {
-            const wrapper = doc.createElement('div');
-            wrapper.className = 'ebook-table-wrapper';
-            table.parentNode.insertBefore(wrapper, table);
-            wrapper.appendChild(table);
-         }
-      });
-      
-      const pageElements = doc.querySelectorAll('.ebook-page-content');
-      const pagesArray = [];
-      const elementsToProcess = pageElements.length > 0 ? Array.from(pageElements) : [doc.body];
-      
-      elementsToProcess.forEach(el => {
-        // Automatic Quality Control (QC) Sanitizer: REMOVE EMPTY PAGES
-        const textContent = el.textContent || '';
-        const words = textContent.trim().split(/\s+/).filter(w => w.length > 0);
-        
-        if (words.length >= 15) {
-          if (el === doc.body) {
-            const fallBackDiv = doc.createElement('div');
-            fallBackDiv.className = 'ebook-page-content';
-            fallBackDiv.innerHTML = el.innerHTML;
-            pagesArray.push(fallBackDiv.outerHTML);
-          } else {
-            pagesArray.push(el.outerHTML);
-          }
-        }
-      });
-      
-      return pagesArray;
-    }
-
-    function finishProcessing() {
-      isProcessing = false;
-      progressBar.style.width = '100%';
-      if (progressPercent) progressPercent.innerText = '100%';
-      progressText.innerText = 'Processing Complete!';
-      pauseBtn.style.display = 'none';
-      processBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Complete';
-      document.getElementById('progress-title').innerText = 'Synthesis Complete';
-      document.getElementById('progress-subtitle').innerText = 'Book generated successfully';
-      document.getElementById('live-badge-status').classList.add('hidden');
-      lucide.createIcons();
-      // Retain the completed book in DB so that page refresh doesn't lose it
-      loadStateFromDB().then(state => {
-        if (state) {
-          state.generatedHtmlPagesByBatch = generatedHtmlPagesByBatch;
-          state.batchesCompleted = batchesCompleted;
-          state.currentBatch = currentBatch;
-          saveStateToDB(state);
-        }
-      }).catch(e => console.warn('Failed to save final state', e));
-    }
-
-    function resetState() {
-      isProcessing = false;
-      processBtn.disabled = false;
-      processBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Start Processing';
-      
-      progressBar.style.width = '0%';
-      if (progressPercent) progressPercent.innerText = '0%';
-      progressText.innerText = 'Waiting for PDF upload...';
-      document.getElementById('progress-title').innerText = 'System Idle';
-      document.getElementById('progress-subtitle').innerText = 'Upload a PDF to begin pipeline';
-      document.getElementById('live-badge-status').classList.add('hidden');
-      pauseBtn.style.display = 'none';
-      
-      const board = progressContainer.querySelector('.max-w-2xl');
-      if (board) board.classList.remove('scale-95', 'opacity-90');
-      lucide.createIcons();
-    }
-
-    // Export Logic
-    downloadBtn.addEventListener('click', async () => {
-      if (generatedHtmlPages.length === 0) return;
-      
-      const prevHtml = downloadBtn.innerHTML;
-      downloadBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Preparing Offline File...';
-      downloadBtn.disabled = true;
-      lucide.createIcons();
-      
-      let pageFlipSource = '';
-      try {
-        const resp = await fetch('https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js');
-        if (resp.ok) {
-           pageFlipSource = await resp.text();
-        }
-      } catch (err) {
-        console.warn("Could not fetch page-flip for offline embed, using CDN fallback.");
-      }
-
-      const escapedPages = JSON.stringify(finalRenderedPages).replace(/<\//g, "<\\/");
-      
-      const exportHtml = `<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ebook-ify Offline Book</title>
-  ${pageFlipSource ? `\x3Cscript>${pageFlipSource}\x3C/script>` : `\x3Cscript src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js">\x3C/script>`}
-  <style>
-    body { margin: 0; padding: 0; background: #FAF8F5; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, sans-serif; overflow: hidden; }
-    
-    .ebook-page-content {
-      font-family: system-ui, -apple-system, sans-serif;
-      padding: 1.5rem 1.75rem 2.25rem 1.75rem;
-      background: #FAF8F5;
-      color: #1E293B;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      overflow-y: hidden;
-      box-sizing: border-box;
-      border: none;
-      position: relative;
-      line-height: 1.6;
-    }
-    .ebook-page-content h1, .ebook-page-content h2, .ebook-page-content h3 { color: #1E293B; margin-top: 1.8rem; margin-bottom: 0.2rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.25; }
-    .ebook-page-content h1:first-child, .ebook-page-content h2:first-child, .ebook-page-content h3:first-child { margin-top: 0; }
-    .ebook-page-content p { margin-bottom: 0.6rem; line-height: 1.6; font-size: clamp(0.92rem, 2vw, 1.1rem); color: #475569; }
-    .ebook-page-content ul, .ebook-page-content ol { margin-bottom: 0.6rem; padding-left: 1.4em; color: #475569; line-height: 1.6; font-size: clamp(0.92rem, 2vw, 1.1rem); }
-    .ebook-page-content li { margin-bottom: 0.2rem; }
-    .ebook-page-content strong, .ebook-page-content b { color: #1E293B; font-weight: 700; }
-    .ebook-page-content p > strong:first-child, .ebook-page-content p > b:first-child, .ebook-page-content strong.sub-label, .ebook-page-content b.sub-label { margin-top: 0.5rem; margin-bottom: 0rem !important; display: inline-block; }
-
-    .ebook-page-content p, .ebook-page-content ul, .ebook-page-content ol, .ebook-page-content li, .ebook-page-content table, .ebook-page-content tr, .ebook-page-content td, .ebook-page-content .callout, .ebook-page-content .card, .ebook-page-content .timeline, .ebook-table-wrapper {
-      break-inside: avoid;
-      page-break-inside: avoid;
-      -webkit-column-break-inside: avoid;
-    }
-
-    .ebook-page-content h1, .ebook-page-content h2, .ebook-page-content h3, .ebook-page-content h4, .chapter-title, .section-header { 
-      break-after: avoid-page !important; 
-      page-break-after: avoid !important; 
-      break-inside: avoid !important; 
-    }
-
-    .ebook-page-content .callout { padding: 1rem 1.25rem; border-radius: 0.75rem; margin: 1rem 0; border-left: 4px solid; background: rgba(232,180,184,0.1); backdrop-filter: blur(10px); }
-    .ebook-page-content .callout.warning { border-color: #e8b4b8; color: #b9767c; background-color: rgba(232, 180, 184, 0.15); }
-    .ebook-page-content .callout.tip { border-color: #a8c3a8; color: #6a8c6a; background-color: rgba(168, 195, 168, 0.15); }
-    
-    .ebook-page-content .definition-card, .ebook-page-content .card.glassmorphic { background: #FFFFFF; backdrop-filter: blur(12px); padding: 1.25rem; border-radius: 1rem; margin: 1rem 0; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); border: 1px solid #E8DEF8; }
-    .ebook-page-content .card.glassmorphic { border-left: 4px solid #a8c3a8; }
-    
-    .ebook-page-content .timeline { border-left: 3px solid #d8b4e2; padding-left: 1.25rem; margin: 1rem 0; position: relative; }
-    .ebook-page-content .timeline::before { content: ""; position: absolute; left: -9px; top: 0; width: 15px; height: 15px; background: #d8b4e2; border-radius: 50%; box-shadow: 0 0 0 4px rgba(216, 180, 226, 0.3); }
-    
-    .ebook-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0.85rem 0; }
-    .ebook-page-content table { width: 100%; border-collapse: collapse; }
-    .ebook-page-content th, .ebook-page-content td { white-space: normal; word-break: break-word; min-width: 110px; text-align: left; padding: 8px 10px; border: 1px solid rgba(232, 180, 184, 0.4); font-size: 0.85rem; }
-    .ebook-page-content th { background-color: rgba(232, 180, 184, 0.1); color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.72rem; }
-    
-    .page-footer { position: absolute; bottom: 0.5rem; left: 0; width: 100%; text-align: center; font-size: 0.75rem; color: #475569; opacity: 0.6; }
-    
-    .flip-book { width: 100vw; min-height: 100vh; display: none; box-shadow: none; }
-    .page { background-color: #FAF8F5; overflow: hidden; }
-
-    #toc-drawer { position: fixed; right: 0; top: 0; height: 100%; width: 320px; background: #FFFFFF; color: #1E293B; border-left: 1px solid #E8DEF8; box-shadow: -10px 0 30px rgba(0,0,0,0.05); transform: translateX(100%); transition: transform 0.3s ease; z-index: 50; display: flex; flex-direction: column; font-family: system-ui, sans-serif; }
-    #toc-drawer.open { transform: translateX(0); }
-    #toc-header { padding: 1.5rem; border-bottom: 1px solid #E8DEF8; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.125rem; }
-    #close-toc-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.25rem; }
-    #close-toc-btn:hover { color: #1E293B; }
-    #toc-list { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .toc-item { background: none; border: none; text-align: left; padding: 0.75rem; border-radius: 0.375rem; color: #475569; cursor: pointer; font-size: 0.875rem; transition: background 0.2s; }
-    .toc-item:hover { background: #FAF8F5; color: #1E293B; }
-    .toc-item.sub { padding-left: 1.5rem; font-size: 0.75rem; color: #475569; }
-    #toc-toggle-btn { position: absolute; top: 1rem; right: 1rem; z-index: 40; background: #FAF8F5; border: 1px solid #E8DEF8; color: #1E293B; border-radius: 0.5rem; padding: 0.75rem; cursor: pointer; display: none; }
-    #toc-toggle-btn:hover { background: #E8DEF8; }
-  </style>
-</head>
-<body>
-  <div id="book" class="flip-book"></div>
-  
-  <div id="toc-drawer">
-    <div id="toc-header">
-      <span>Table of Contents</span>
-      <button id="close-toc-btn">✕</button>
-    </div>
-    <div id="toc-list"></div>
-  </div>
-  <button id="toc-toggle-btn">☰</button>
-
-  \x3Cscript>
-    const pagesData = ${escapedPages};
-    
-    if (pagesData.length > 0 && pagesData.length % 2 !== 0) {
-      pagesData.push('<div class="ebook-page-content"></div>');
-    }
-    if (pagesData.length < 2) {
-      pagesData.push('<div class="ebook-page-content"></div>');
-    }
-
-    const bookEl = document.getElementById('book');
-    const tocList = document.getElementById('toc-list');
-    let tocHTML = '';
-
-    pagesData.forEach((html, index) => {
-      const div = document.createElement('div');
-      div.className = 'page';
-      div.innerHTML = html;
-      
-      const headers = div.querySelectorAll('h2, h3');
-      headers.forEach(h => {
-         const isSub = h.tagName.toLowerCase() === 'h3';
-         const text = h.innerText.trim();
-         if (text.length > 0) {
-           tocHTML += \`<button onclick="pageFlip.turnToPage(\${index})" class="toc-item \${isSub ? 'sub' : ''}">\${text}</button>\`;
-         }
-      });
-      
-      const contentDiv = div.querySelector('.ebook-page-content');
-      if (contentDiv) {
-         let footer = contentDiv.querySelector('.page-footer');
-         if (!footer) {
-           footer = document.createElement('div');
-           footer.className = 'page-footer';
-           contentDiv.appendChild(footer);
-         }
-         footer.innerText = 'Page ' + (index + 1) + ' of ' + pagesData.length;
-      }
-      
-      bookEl.appendChild(div);
-    });
-
-    if (tocHTML) {
-      tocList.innerHTML = tocHTML;
-      document.getElementById('toc-toggle-btn').style.display = 'block';
-    } else {
-      tocList.innerHTML = '<div style="text-align: center; color: #64748b; margin-top: 2rem;">No chapters found.</div>';
-    }
-
-    document.getElementById('toc-toggle-btn').addEventListener('click', () => {
-       document.getElementById('toc-drawer').classList.add('open');
-    });
-    document.getElementById('close-toc-btn').addEventListener('click', () => {
-       document.getElementById('toc-drawer').classList.remove('open');
-    });
-
-    const pageFlip = new St.PageFlip(bookEl, {
-      width: 500,
-      height: 700,
-      size: 'stretch',
-      minWidth: 300,
-      maxWidth: 600,
-      minHeight: 400,
-      maxHeight: 900,
-      maxShadowOpacity: 0.5,
-      showCover: true,
-      mobileScrollSupport: false
-    });
-    
-    pageFlip.loadFromHTML(bookEl.querySelectorAll('.page'));
-    
-    pageFlip.on('flip', () => {
-       document.getElementById('toc-drawer').classList.remove('open');
-    });
-  \x3C/script>
-</body>
-</html>`;
-
-      const blob = new Blob([exportHtml], { type: "text/html" });
+      const blob = new Blob([generatedHtmlString], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = "flipbook_ebook.html";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-    // Global Smart Term Tooltip Click Handler (Tap-to-Explain)
-    document.addEventListener('click', (e) => {
-      const termEl = e.target.closest('.smart-term');
-      const tooltip = document.getElementById('smart-term-tooltip');
-      
-      if (termEl) {
-        e.preventDefault();
-        e.stopPropagation();
-        const term = termEl.textContent.trim();
-        const def = termEl.getAttribute('data-def') || 'Key subject term.';
-        const mnemonic = termEl.getAttribute('data-mnemonic');
+    }
 
-        const titleEl = document.getElementById('tooltip-term-title');
-        const defEl = document.getElementById('tooltip-term-def');
-        if (titleEl) titleEl.textContent = term;
-        if (defEl) defEl.textContent = def;
-        
-        const mnemonicContainer = document.getElementById('tooltip-term-mnemonic-container');
-        const mnemonicEl = document.getElementById('tooltip-term-mnemonic');
-        if (mnemonicContainer && mnemonicEl) {
-          if (mnemonic && mnemonic.trim().length > 0) {
-            mnemonicEl.textContent = mnemonic;
-            mnemonicContainer.classList.remove('hidden');
-          } else {
-            mnemonicContainer.classList.add('hidden');
+    // BUILDER FUNCTION FOR THE EXPORTED STANDALONE FLIPBOOK HTML FILE
+    function buildStandaloneHtml(title, author, pages) {
+      const safeTitle = title.replace(/"/g, '&quot;');
+      const safeAuthor = author.replace(/"/g, '&quot;');
+      const pageCount = pages.length;
+      
+      // Calculate average page dimensions
+      const avgWidth = pages[0]?.width || 800;
+      const avgHeight = pages[0]?.height || 1100;
+
+      // JSON stringified page data
+      const pagesJson = JSON.stringify(pages);
+
+      const scriptOpen = '<' + 'script>';
+      const scriptClose = '<' + '/script>';
+      const scriptTailwind = '<' + 'script src="https://cdn.tailwindcss.com"><' + '/script>';
+      const scriptLucide = '<' + 'script src="https://unpkg.com/lucide@latest"><' + '/script>';
+      const scriptPageFlip = '<' + 'script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"><' + '/script>';
+
+      return `<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>${safeTitle} - 3D Flipbook Ebook</title>
+
+  <!-- Tailwind CSS & Lucide Icons via CDN -->
+  ${scriptTailwind}
+  ${scriptLucide}
+
+  <!-- StPageFlip CDN -->
+  ${scriptPageFlip}
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #18181b;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Soft Pastel Theme Overrides */
+    body.theme-pastel { background-color: #FAF8F5; color: #1E293B; }
+    body.theme-dark { background-color: #0F172A; color: #F8FAFC; }
+    body.theme-sepia { background-color: #FBF0D9; color: #432818; }
+
+    #book-viewport {
+      width: 100vw;
+      height: calc(100vh - 60px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin-top: 60px;
+    }
+
+    .page-item {
+      background-color: #ffffff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    /* Zoom container wrapper */
+    #zoom-stage {
+      transition: transform 0.1s ease-out;
+      transform-origin: center center;
+    }
+
+    /* Drawer Animation */
+    #thumb-drawer {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="theme-pastel h-full flex flex-col">
+
+  <!-- Top Toolbar Navigation -->
+  <header class="fixed top-0 left-0 right-0 h-14 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-50 px-4 flex items-center justify-between shadow-xs">
+    
+    <div class="flex items-center gap-3">
+      <button id="btn-toggle-drawer" class="p-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Table of Contents / Thumbnails">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+      </button>
+      <div class="truncate max-w-[180px] sm:max-w-md">
+        <h1 class="text-xs font-bold text-slate-900 dark:text-white truncate">${safeTitle}</h1>
+        <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">${safeAuthor}</p>
+      </div>
+    </div>
+
+    <!-- Center Navigation Jump Controls -->
+    <div class="flex items-center gap-1 sm:gap-2">
+      <button id="btn-first-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="First Page">
+        <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+      </button>
+      <button id="btn-prev-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Previous Page">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+      </button>
+
+      <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+        <input type="number" id="page-jump-input" min="1" max="${pageCount}" value="1" class="w-9 text-center bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none" />
+        <span class="text-xs text-slate-400">/ ${pageCount}</span>
+      </div>
+
+      <button id="btn-next-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Next Page">
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+      </button>
+      <button id="btn-last-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Last Page">
+        <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Right Utility Controls -->
+    <div class="flex items-center gap-1 sm:gap-2">
+      <button id="btn-zoom-out" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Zoom Out">
+        <i data-lucide="zoom-out" class="w-4 h-4"></i>
+      </button>
+      <span id="zoom-txt" class="hidden sm:inline text-[11px] font-mono font-semibold text-slate-500">100%</span>
+      <button id="btn-zoom-in" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Zoom In">
+        <i data-lucide="zoom-in" class="w-4 h-4"></i>
+      </button>
+      
+      <div class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+      <!-- Theme Switcher -->
+      <button id="btn-theme-toggle" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Toggle Theme (Pastel / Dark / Sepia)">
+        <i data-lucide="palette" class="w-4 h-4"></i>
+      </button>
+
+      <button id="btn-fullscreen" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Fullscreen">
+        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+  </header>
+
+  <!-- Main Viewport Canvas -->
+  <div id="book-viewport">
+    <div id="zoom-stage">
+      <div id="flipbook-container"></div>
+    </div>
+  </div>
+
+  <!-- Thumbnails Drawer Panel -->
+  <aside id="thumb-drawer" class="fixed top-14 left-0 bottom-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-40 p-4 overflow-y-auto transform -translate-x-full shadow-2xl space-y-4">
+    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+      <span class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Page Thumbnails</span>
+      <button id="btn-close-drawer" class="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <div id="thumb-grid" class="grid grid-cols-2 gap-3">
+      <!-- Generated Thumbnail Cards -->
+    </div>
+  </aside>
+
+  <!-- Resume Memory Toast Notification -->
+  <div id="resume-toast" class="hidden fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 border border-slate-700 text-xs font-medium animate-bounce">
+    <i data-lucide="bookmark" class="w-4 h-4 text-[#A8C3A8]"></i>
+    <span id="resume-txt">Resumed at page 1</span>
+    <button id="btn-dismiss-toast" class="ml-2 text-slate-400 hover:text-white">
+      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+    </button>
+  </div>
+
+  <!-- Embedded Book Data & JS Engine -->
+  ${scriptOpen}
+    const BOOK_DATA = ${pagesJson};
+    const BOOK_META = {
+      title: "${safeTitle}",
+      author: "${safeAuthor}",
+      pageCount: ${pageCount},
+      avgWidth: ${avgWidth},
+      avgHeight: ${avgHeight}
+    };
+
+    let pageFlipInstance = null;
+    let zoomLevel = 1.0;
+    let themes = ['theme-pastel', 'theme-dark', 'theme-sepia'];
+    let currentThemeIdx = 0;
+
+    if (window.lucide) lucide.createIcons();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initFlipbook();
+      buildThumbnails();
+      setupEventListeners();
+      checkSavedProgress();
+    });
+
+    function initFlipbook() {
+      const container = document.getElementById('flipbook-container');
+      container.innerHTML = '';
+
+      BOOK_DATA.forEach((pg) => {
+        const div = document.createElement('div');
+        div.className = 'page-item';
+        div.innerHTML = '<img src="' + pg.dataUrl + '" alt="Page ' + pg.pageNum + '" />';
+        container.appendChild(div);
+      });
+
+      const screenWidth = window.innerWidth;
+      const isMobile = screenWidth < 768;
+      
+      const bookWidth = isMobile ? Math.min(screenWidth - 20, 500) : Math.min(Math.floor(screenWidth * 0.42), 600);
+      const aspectRatio = BOOK_META.avgHeight / BOOK_META.avgWidth;
+      const bookHeight = Math.floor(bookWidth * aspectRatio);
+
+      pageFlipInstance = new St.PageFlip(container, {
+        width: bookWidth,
+        height: bookHeight,
+        size: 'stretch',
+        minWidth: 280,
+        maxWidth: 800,
+        minHeight: 380,
+        maxHeight: 1100,
+        maxShadowOpacity: 0.5,
+        showCover: true,
+        mobileScrollSupport: true
+      });
+
+      pageFlipInstance.loadFromHTML(document.querySelectorAll('.page-item'));
+
+      pageFlipInstance.on('flip', (e) => {
+        const currPage = e.data + 1;
+        document.getElementById('page-jump-input').value = currPage;
+        saveProgress(currPage);
+      });
+    }
+
+    function buildThumbnails() {
+      const grid = document.getElementById('thumb-grid');
+      grid.innerHTML = '';
+
+      BOOK_DATA.forEach((pg) => {
+        const item = document.createElement('div');
+        item.className = 'relative rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden cursor-pointer hover:border-slate-900 dark:hover:border-white transition-all group';
+        item.innerHTML = '<img src="' + pg.dataUrl + '" class="w-full h-24 object-cover" alt="Page ' + pg.pageNum + '" /><div class="absolute inset-0 bg-slate-900/10 group-hover:bg-transparent transition-colors"></div><span class="absolute bottom-1 right-1 bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">p.' + pg.pageNum + '</span>';
+        item.addEventListener('click', () => {
+          pageFlipInstance.flip(pg.pageNum - 1);
+          toggleDrawer(false);
+        });
+        grid.appendChild(item);
+      });
+    }
+
+    function setupEventListeners() {
+      document.getElementById('btn-prev-page').addEventListener('click', () => pageFlipInstance.flipPrev());
+      document.getElementById('btn-next-page').addEventListener('click', () => pageFlipInstance.flipNext());
+      document.getElementById('btn-first-page').addEventListener('click', () => pageFlipInstance.flip(0));
+      document.getElementById('btn-last-page').addEventListener('click', () => pageFlipInstance.flip(BOOK_META.pageCount - 1));
+
+      const jumpInput = document.getElementById('page-jump-input');
+      jumpInput.addEventListener('change', () => {
+        let val = parseInt(jumpInput.value);
+        if (isNaN(val)) val = 1;
+        val = Math.max(1, Math.min(BOOK_META.pageCount, val));
+        pageFlipInstance.flip(val - 1);
+      });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(zoomLevel + 0.25));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(zoomLevel - 0.25));
+
+      document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+        document.body.classList.remove(themes[currentThemeIdx]);
+        currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+        document.body.classList.add(themes[currentThemeIdx]);
+      });
+
+      document.getElementById('btn-toggle-drawer').addEventListener('click', () => toggleDrawer(true));
+      document.getElementById('btn-close-drawer').addEventListener('click', () => toggleDrawer(false));
+
+      document.getElementById('btn-fullscreen').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') pageFlipInstance.flipNext();
+        if (e.key === 'ArrowLeft') pageFlipInstance.flipPrev();
+        if (e.key === 'Home') pageFlipInstance.flip(0);
+        if (e.key === 'End') pageFlipInstance.flip(BOOK_META.pageCount - 1);
+        if (e.key === 'f' || e.key === 'F') {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+          else document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      document.getElementById('btn-dismiss-toast').addEventListener('click', () => {
+        document.getElementById('resume-toast').classList.add('hidden');
+      });
+    }
+
+    function setZoom(lvl) {
+      zoomLevel = Math.max(0.75, Math.min(2.5, lvl));
+      document.getElementById('zoom-stage').style.transform = 'scale(' + zoomLevel + ')';
+      document.getElementById('zoom-txt').innerText = Math.round(zoomLevel * 100) + '%';
+    }
+
+    function toggleDrawer(open) {
+      const drawer = document.getElementById('thumb-drawer');
+      if (open) drawer.classList.remove('-translate-x-full');
+      else drawer.classList.add('-translate-x-full');
+    }
+
+    function saveProgress(pageNum) {
+      try {
+        const storageKey = 'flipbook_last_page_' + BOOK_META.title;
+        localStorage.setItem(storageKey, pageNum);
+      } catch (e) {}
+    }
+
+    function checkSavedProgress() {
+      try {
+        const storageKey = 'flipbook_last_page_' + BOOK_META.title;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const pg = parseInt(saved);
+          if (pg > 1 && pg <= BOOK_META.pageCount) {
+            setTimeout(() => {
+              pageFlipInstance.flip(pg - 1);
+              const toast = document.getElementById('resume-toast');
+              document.getElementById('resume-txt').innerText = 'Resumed reading at page ' + pg;
+              toast.classList.remove('hidden');
+              setTimeout(() => toast.classList.add('hidden'), 4000);
+            }, 500);
           }
         }
-
-        if (tooltip) {
-          tooltip.classList.remove('hidden');
-          const rect = termEl.getBoundingClientRect();
-          let top = rect.bottom + 8;
-          let left = Math.max(12, Math.min(rect.left, window.innerWidth - 320));
-          if (top + 180 > window.innerHeight) {
-            top = rect.top - 180;
-          }
-          tooltip.style.top = `${Math.max(12, top)}px`;
-          tooltip.style.left = `${left}px`;
-        }
-      } else if (tooltip && !tooltip.contains(e.target)) {
-        tooltip.classList.add('hidden');
-      }
-    });
-
-    document.getElementById('close-tooltip-btn')?.addEventListener('click', () => {
-      document.getElementById('smart-term-tooltip')?.classList.add('hidden');
-    });
-
-    downloadBtn.innerHTML = prevHtml;
-      downloadBtn.disabled = false;
-      lucide.createIcons();
-    });
+      } catch (e) {}
+    }
+  ${scriptClose}
+</body>
+</html>`;
+    }
   </script>
 </body>
 </html>

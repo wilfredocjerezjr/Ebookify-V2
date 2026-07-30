@@ -1,6 +1,6 @@
 {
-  "name": "Ebook-ify Reviewer Pro",
-  "description": "3D offline ebook reviewer generator and PDF cognitive compression tool using AI models.",
+  "name": "PDF Flipbook Converter Pro",
+  "description": "Convert PDFs into standalone, downloadable 3D flipbook HTML ebooks with offline reading features.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
