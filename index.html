@@ -234,9 +234,38 @@
       <h1 class="text-xl font-bold tracking-tight text-[#E8B4B8] leading-tight">Ebook-ify <br/><span class="text-[#A8C3A8]">Reviewer Pro</span></h1>
     </div>
 
+    <!-- Engine Mode Toggle -->
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">AI Execution Engine</label>
+      <div class="relative">
+        <select id="engineModeSelect" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all text-xs font-medium appearance-none cursor-pointer pr-8">
+          <option value="webllm" selected>⚡ In-Browser WebGPU AI (100% $0 Offline - WebLLM)</option>
+          <option value="cloud">☁️ Cloud API Fallback (OpenRouter ➔ Groq ➔ Gemini Free)</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#475569]">
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- WebLLM Model Selector -->
+    <div id="webllm-model-box" class="mb-4">
+      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">In-Browser WebGPU Model</label>
+      <div class="relative">
+        <select id="webllmModelSelect" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-[#1E293B] focus:ring-1 focus:ring-[#A8C3A8] outline-none transition-all text-xs font-medium appearance-none cursor-pointer pr-8">
+          <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC" selected>Llama-3.2-1B-Instruct (Fast / Mobile)</option>
+          <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5-1.5B-Instruct (High Quality)</option>
+          <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama-3.2-3B-Instruct (Desktop High-Yield)</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#475569]">
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </div>
+      </div>
+    </div>
+
     <!-- API Key -->
     <div class="mb-4">
-      <label class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">PASTE ALL API KEYS HERE (Mix OpenRouter, Groq, & Gemini keys separated by commas or new lines)</label>
+      <label id="api-key-label" class="block text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2" style="font-size: 0.65rem;">API KEYS (Optional for WebLLM In-Browser Mode)</label>
       <div class="relative">
         <div id="key-lock-overlay" class="absolute inset-0 z-10 bg-[#FFFFFF]/40 backdrop-blur-md cursor-pointer flex items-center justify-center rounded-lg border border-[#E8DEF8] hover:bg-[#FAF8F5]/60 transition-colors">
            <div class="flex items-center gap-2">
@@ -251,7 +280,7 @@
     <!-- Engine Status -->
     <div class="mb-6 bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg p-3">
       <label class="block text-[0.6rem] font-semibold text-[#475569] uppercase tracking-wider mb-2">AI Engine Status</label>
-      <div class="text-xs font-mono text-[#A8C3A8] mb-2 leading-tight">[ ACTIVE ROTATION ENGINE ]<br/>OpenRouter ➔ Groq ➔ Gemini (Capped)</div>
+      <div id="engine-status-text" class="text-xs font-mono text-[#A8C3A8] mb-2 leading-tight">[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>WebLLM Local Engine ($0 Serverless)</div>
       <div id="live-badge" class="text-xs text-[#1E293B] font-medium bg-[#FAF8F5] p-2 rounded border border-[#E8DEF8] break-words">
         Waiting for pipeline...
       </div>
@@ -1173,6 +1202,27 @@
 
     // PDF Extraction & API Calling
     
+    // Engine Mode Toggle UI Listener
+    const engineModeSelect = document.getElementById('engineModeSelect');
+    const webllmModelBox = document.getElementById('webllm-model-box');
+    const engineStatusText = document.getElementById('engine-status-text');
+    const apiKeyLabel = document.getElementById('api-key-label');
+
+    if (engineModeSelect) {
+      engineModeSelect.addEventListener('change', () => {
+        const val = engineModeSelect.value;
+        if (val === 'webllm') {
+          if (webllmModelBox) webllmModelBox.style.display = 'block';
+          if (engineStatusText) engineStatusText.innerHTML = `[ 100% IN-BROWSER WEBGPU ENGINE ]<br/>WebLLM Local Engine ($0 Serverless)`;
+          if (apiKeyLabel) apiKeyLabel.innerText = `API KEYS (Optional for WebLLM In-Browser Mode)`;
+        } else {
+          if (webllmModelBox) webllmModelBox.style.display = 'none';
+          if (engineStatusText) engineStatusText.innerHTML = `[ ACTIVE ROTATION ENGINE ]<br/>OpenRouter ➔ Groq ➔ Gemini (Capped)`;
+          if (apiKeyLabel) apiKeyLabel.innerText = `PASTE ALL API KEYS HERE (Mix OpenRouter, Groq, & Gemini keys)`;
+        }
+      });
+    }
+
     startFreshBtn.addEventListener('click', () => {
        explicitStartFresh = true;
        resumeState = null;
@@ -1185,9 +1235,16 @@
 
     processBtn.addEventListener('click', async () => {
       parseApiKeys(apiKey);
-      if ((!currentFile && !resumeState) || (openRouterKeys.length === 0 && groqKeys.length === 0 && geminiKeys.length === 0)) {
+      const selectedMode = document.getElementById('engineModeSelect')?.value || 'webllm';
+      
+      if (!currentFile && !resumeState) {
         const liveBadge = document.getElementById('live-badge');
-        if (liveBadge) liveBadge.innerText = "[Notice] Please upload a PDF file and configure an API Key to proceed.";
+        if (liveBadge) liveBadge.innerText = "[Notice] Please select or upload a PDF file to proceed.";
+        return;
+      }
+      if (selectedMode === 'cloud' && (openRouterKeys.length === 0 && groqKeys.length === 0 && geminiKeys.length === 0)) {
+        const liveBadge = document.getElementById('live-badge');
+        if (liveBadge) liveBadge.innerText = "[Notice] Please enter at least one API Key for Cloud API mode.";
         return;
       }
       isProcessing = true;
@@ -1495,7 +1552,54 @@
       }
     }
 
+    // WebLLM Engine Instance & Caching
+    let webllmModule = null;
+    let webllmEngine = null;
+    let currentWebllmModel = '';
+
+    async function checkWebGPUSupport() {
+      if (!navigator.gpu) return false;
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        return !!adapter;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function getWebLLMEngine(modelName, myBatch) {
+      if (webllmEngine && currentWebllmModel === modelName) {
+        return webllmEngine;
+      }
+      
+      const liveBadge = document.getElementById('live-badge');
+      const progressSubtitle = document.getElementById('progress-subtitle');
+
+      if (!webllmModule) {
+        if (liveBadge) liveBadge.innerText = "[WebLLM Engine] Loading WebLLM runtime library...";
+        webllmModule = await import("https://esm.run/@mlc-ai/web-llm");
+      }
+
+      const initProgressCallback = (report) => {
+        console.log("[WebLLM Progress]", report.text);
+        const statusMsg = `[WebLLM Engine] ${report.text}`;
+        if (liveBadge) liveBadge.innerText = statusMsg;
+        if (progressSubtitle) progressSubtitle.innerText = statusMsg;
+      };
+
+      if (liveBadge) liveBadge.innerText = `[WebLLM Engine] Initializing model ${modelName}...`;
+
+      webllmEngine = await webllmModule.CreateMLCEngine(modelName, {
+        initProgressCallback: initProgressCallback
+      });
+      currentWebllmModel = modelName;
+      return webllmEngine;
+    }
+
     async function callGeminiAPI(text, myBatch) {
+      const mode = document.getElementById('engineModeSelect')?.value || 'webllm';
+      const webllmModel = document.getElementById('webllmModelSelect')?.value || 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+
       const fullPrompt = `You are a Senior Review Center Specialist, Lead Academic Author, and Doctorate-Level Educator. Synthesize uploaded text into an engaging, high-yield, interactive review ebook.
 
 DYNAMIC ADAPTIVE RETENTION ENGINE (95% - 100% RETENTION):
@@ -1533,6 +1637,48 @@ PAGINATION & HTML FORMATTING:
 Text batch:
 ${text}`;
 
+      if (mode === 'webllm') {
+        const hasWebGPU = await checkWebGPUSupport();
+        if (!hasWebGPU) {
+          const noticeMsg = `[Notice] Mobile WebGPU not detected. Switching to Cloud API Free Rotation...`;
+          console.warn(noticeMsg);
+          const liveBadge = document.getElementById('live-badge');
+          if (liveBadge) liveBadge.innerText = noticeMsg;
+          return await callCloudApiChain(fullPrompt, text, myBatch);
+        }
+
+        try {
+          updateLiveBadge('WebLLM WebGPU Local', webllmModel, myBatch);
+          const engine = await getWebLLMEngine(webllmModel, myBatch);
+
+          const liveBadge = document.getElementById('live-badge');
+          if (liveBadge) liveBadge.innerText = `[WebLLM Engine] Synthesizing Batch ${myBatch + 1} locally on WebGPU...`;
+
+          const reply = await engine.chat.completions.create({
+            messages: [{ role: 'user', content: fullPrompt }],
+            temperature: 0.2,
+          });
+
+          const rawHtml = reply.choices?.[0]?.message?.content || '';
+
+          if (rawHtml && rawHtml.trim().length > 0) {
+            return processRawGeneratedHtml(rawHtml);
+          } else {
+            throw new Error("Empty response from WebLLM engine");
+          }
+        } catch (webllmErr) {
+          const noticeMsg = `[Notice] WebLLM error (${webllmErr.message || 'GPU execution failure'}). Switching Batch ${myBatch + 1} to Cloud API...`;
+          console.warn(noticeMsg);
+          const liveBadge = document.getElementById('live-badge');
+          if (liveBadge) liveBadge.innerText = noticeMsg;
+          return await callCloudApiChain(fullPrompt, text, myBatch);
+        }
+      } else {
+        return await callCloudApiChain(fullPrompt, text, myBatch);
+      }
+    }
+
+    async function callCloudApiChain(fullPrompt, text, myBatch) {
       let rawHtml = '';
       let outerRetries = 10;
 
@@ -1577,7 +1723,6 @@ ${text}`;
               selectedModel = groqModels[groqModelIdx % groqModels.length];
               
               // DYNAMIC TOKEN TRIMMING FOR GROQ:
-              // Compress system instructions for Groq if prompt length is large (>12,000 chars) to stay safely under Groq 6,000 TPM limit
               if (reqPrompt.length > 12000) {
                 reqPrompt = `You are a Senior Review Specialist & Doctorate Educator. Synthesize text into an interactive review ebook chapter.
 
@@ -1684,7 +1829,10 @@ ${cleanPdfText(text)}`;
       }
 
       if (!rawHtml) throw new Error("Failed to generate content after failover retries.");
-      
+      return processRawGeneratedHtml(rawHtml);
+    }
+
+    function processRawGeneratedHtml(rawHtml) {
       // Basic strip of markdown wrappers
       rawHtml = rawHtml.replace(/```html/gi, '').replace(/```/g, '');
       
