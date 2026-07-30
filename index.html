@@ -23,7 +23,7 @@
             color: #1E293B;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid #EAE3D9;
@@ -58,7 +58,7 @@
             </div>
             <div>
                 <h1 class="text-xl font-bold text-slate-900 tracking-tight">PDF to Flipbook Exporter</h1>
-                <p class="text-xs text-slate-500 font-medium">Standalone • 100% Offline • Mobile-Perfect View</p>
+                <p class="text-xs text-slate-500 font-medium">Standalone • 100% Offline • Single-Page Mobile View</p>
             </div>
         </div>
         <span class="px-2.5 py-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 rounded-full">v2.5 Pro</span>
@@ -483,7 +483,6 @@ if (btnExport) {
 
         } catch (err) {
             console.error("Export Engine Exception:", err);
-            // Handle error gracefully without throwing blocking alerts or breaking UI state
             if (processingContainer) processingContainer.classList.add('hidden');
             if (formContainer) formContainer.classList.remove('hidden');
         }
@@ -569,7 +568,7 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         /* Soft Pastel Top Reading Toolbar */
         header {
             position: fixed; top: 0; left: 0; right: 0;
-            height: calc(55px + var(--sat));
+            height: calc(50px + var(--sat));
             padding-top: var(--sat);
             padding-left: calc(12px + var(--sal));
             padding-right: calc(12px + var(--sar));
@@ -606,9 +605,9 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         /* Full-Screen Viewport */
         #book-viewport {
             position: absolute;
-            top: calc(55px + var(--sat));
+            top: calc(50px + var(--sat));
             bottom: var(--sab); left: var(--sal); right: var(--sar);
-            width: 100vw; height: calc(100vh - 55px);
+            width: 100vw; height: calc(100vh - 50px);
             display: flex; align-items: center; justify-content: center;
             overflow: hidden; padding: 0;
         }
@@ -619,19 +618,27 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             will-change: transform;
         }
         #flipbook-container {
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.2); border-radius: 4px;
+            width: 100vw !important;
+            height: calc(100vh - 50px) !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
         
         /* Pages */
         .page-wrapper {
             background: #FFFFFF; overflow: hidden;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        .page-wrapper canvas {
-            width: 100%; height: 100%;
-            object-fit: contain; pointer-events: none;
+        .stpageflip-page, .page-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
+            pointer-events: none;
             background-color: #FFFFFF;
         }
         .page-loading {
@@ -646,7 +653,7 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
 
         /* Slide-Out Thumbnails Drawer */
         #thumbs-drawer {
-            position: fixed; top: calc(55px + var(--sat)); bottom: 0; left: 0; width: 260px;
+            position: fixed; top: calc(50px + var(--sat)); bottom: 0; left: 0; width: 260px;
             background: #FDFBF7; border-right: 1px solid #EAE3D9; z-index: 60;
             transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.08);
@@ -833,11 +840,11 @@ ${safePdfWorker}
             const p1Vp = p1.getViewport({ scale: 1.0 });
             const aspect = p1Vp.width / p1Vp.height;
             
-            const availW = vp.clientWidth;
-            const availH = vp.clientHeight;
+            const availW = vp.clientWidth || window.innerWidth;
+            const availH = vp.clientHeight || (window.innerHeight - 50);
             
-            // HARD-LOCKED SINGLE PAGE VIEW ON MOBILE / PORTRAIT (<768px)
-            const isPortrait = availW < 768;
+            // HARD-LOCKED SINGLE PAGE VIEW ON MOBILE / PORTRAIT (<768px or aspect ratio)
+            const isPortrait = availW < 768 || availW < availH;
             
             let pageWidth, pageHeight;
             
@@ -865,18 +872,22 @@ ${safePdfWorker}
             
             if (pageFlip) pageFlip.destroy();
             
+            // STRICT STPAGEFLIP INITIALIZATION (NO Turn.js FLAGS)
             pageFlip = new St.PageFlip(container, {
                 width: pageWidth,
                 height: pageHeight,
-                size: 'stretch',
+                size: "stretch",
                 minWidth: 150,
                 maxWidth: 2500,
                 minHeight: 200,
                 maxHeight: 3000,
+                drawShadow: true,
                 maxShadowOpacity: 0.35,
-                showCover: !isPortrait, // Single page mode on mobile
-                mobileScrollSupport: false,
-                usePortrait: true,
+                showCover: !isPortrait, // Single page mode on mobile portrait
+                mobileScrollSupport: true,
+                usePortrait: isPortrait, // MANDATORY: Forces 1-page mode on portrait viewports
+                startPage: 0,
+                autoSize: true,
                 clickToFlip: true
             });
             
@@ -954,7 +965,7 @@ ${safePdfWorker}
                 item.id = 'thumb-' + i;
                 item.innerHTML = '<span>Page ' + (i + 1) + '</span>';
                 item.addEventListener('click', () => {
-                    pageFlip && pageFlip.flip(i);
+                    if (pageFlip) pageFlip.flip(i);
                     toggleDrawer(false);
                 });
                 grid.appendChild(item);
