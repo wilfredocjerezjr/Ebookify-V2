@@ -579,6 +579,49 @@ ${text}`;
     
     .flip-book { width: 100%; height: 100%; max-width: 1200px; max-height: 85vh; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
     .page { background-color: #0f172a; overflow: hidden; }
+
+    @media (max-width: 767px) {
+      body {
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .flip-book {
+        box-shadow: none !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .page {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: transparent !important;
+      }
+      .page.active-mobile-page {
+        display: flex !important;
+      }
+      .ebook-page-content {
+        max-width: 100% !important;
+        max-height: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        aspect-ratio: 5 / 7 !important;
+        object-fit: contain !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+        overflow-y: auto !important; /* Allow scroll inside mobile text container if content overflow */
+      }
+    }
   </style>
 </head>
 <body>
@@ -602,20 +645,102 @@ ${text}`;
       bookEl.appendChild(div);
     });
 
-    const pageFlip = new St.PageFlip(bookEl, {
-      width: 500,
-      height: 700,
-      size: 'stretch',
-      minWidth: 300,
-      maxWidth: 600,
-      minHeight: 400,
-      maxHeight: 900,
-      maxShadowOpacity: 0.5,
-      showCover: true,
-      mobileScrollSupport: false
+    let isMobileMode = window.innerWidth < 768;
+    let currentPageIndex = 0;
+    let pageFlip = null;
+
+    function goToPage(p) {
+      if (p < 0 || p >= pagesData.length) return;
+      currentPageIndex = p;
+      if (isMobileMode) {
+        document.querySelectorAll('.page').forEach((el, idx) => {
+          if (idx === p) {
+            el.classList.add('active-mobile-page');
+          } else {
+            el.classList.remove('active-mobile-page');
+          }
+        });
+      } else {
+        if (pageFlip && pageFlip.getCurrentPageIndex() !== p) {
+          pageFlip.flip(p);
+        }
+      }
+    }
+
+    function initBook() {
+      isMobileMode = window.innerWidth < 768;
+      if (pageFlip) {
+        try { pageFlip.destroy(); } catch(e) {}
+        pageFlip = null;
+      }
+
+      document.querySelectorAll('.page').forEach(el => {
+        el.style.width = '';
+        el.style.height = '';
+      });
+
+      if (!isMobileMode) {
+        pageFlip = new St.PageFlip(bookEl, {
+          width: 500,
+          height: 700,
+          size: 'stretch',
+          minWidth: 300,
+          maxWidth: 600,
+          minHeight: 400,
+          maxHeight: 900,
+          maxShadowOpacity: 0.5,
+          showCover: true,
+          mobileScrollSupport: false
+        });
+
+        pageFlip.loadFromHTML(bookEl.querySelectorAll('.page'));
+
+        pageFlip.on('flip', (e) => {
+          currentPageIndex = e.data;
+        });
+      }
+
+      goToPage(currentPageIndex);
+    }
+
+    // Touch Swiping for mobile mode
+    let touchStartX = 0;
+    let touchStartY = 0;
+    document.addEventListener('touchstart', e => {
+      if (isMobileMode && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
     });
 
-    pageFlip.loadFromHTML(bookEl.querySelectorAll('.page'));
+    document.addEventListener('touchend', e => {
+      if (isMobileMode && e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+          if (deltaX < 0) {
+            goToPage(currentPageIndex + 1);
+          } else {
+            goToPage(currentPageIndex - 1);
+          }
+        }
+      }
+    });
+
+    // Keyboard arrow controls for convenience
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        goToPage(currentPageIndex + 1);
+      } else if (e.key === 'ArrowLeft') {
+        goToPage(currentPageIndex - 1);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      initBook();
+    });
+
+    initBook();
   </` + `script>
 </body>
 </html>`;
