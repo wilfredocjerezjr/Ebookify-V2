@@ -1,1444 +1,647 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-[#FAF8F5]">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Flipbook Converter Pro - Standalone Ebook Generator</title>
-
-  <!-- Tailwind CSS & Typography via CDN -->
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            pastel: {
-              rose: '#E8B4B8',
-              sage: '#A8C3A8',
-              cream: '#FAF8F5',
-              lavender: '#E8DEF8',
-              slate: '#1E293B',
-              muted: '#64748B'
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Lucide Icons via CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- PDF.js via CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  </script>
-
-  <!-- StPageFlip via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
-
-  <style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #FAF8F5;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #E8DEF8;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #E8B4B8;
-    }
-
-    /* Flipbook Container Animations */
-    .stpageflip-container {
-      box-shadow: 0 20px 40px -15px rgba(30, 41, 59, 0.15);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    /* Pulse Glow */
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.8; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.02); }
-    }
-    .pulse-glow {
-      animation: pulseGlow 2s infinite ease-in-out;
-    }
-  </style>
-</head>
-<body class="h-full font-sans text-slate-800 bg-[#FAF8F5] antialiased flex flex-col">
-
-  <!-- Header / Navigation Bar -->
-  <header id="main-header" class="bg-white/80 backdrop-blur-md border-b border-[#E8DEF8] sticky top-0 z-30 px-4 lg:px-8 py-3 transition-all">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div id="app-logo-badge" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E8B4B8] to-[#A8C3A8] p-0.5 shadow-sm flex items-center justify-center">
-          <div class="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
-            <i data-lucide="book-open-check" class="w-5 h-5 text-[#1E293B]"></i>
-          </div>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            PDF Flipbook Converter Pro
-            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#A8C3A8]/20 text-emerald-800 border border-[#A8C3A8]/40">100% Offline Standalone</span>
-          </h1>
-          <p class="text-xs text-slate-500">Package heavy multi-page PDFs into zero-dependency 3D HTML Flipbooks</p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <button id="btn-quick-sample" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8DEF8] text-xs font-medium text-slate-700 hover:bg-[#FAF8F5] transition-colors">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E8B4B8]"></i>
-          Load Sample Doc
-        </button>
-        <a href="https://github.com/nodeprep/pdf-flipbook" target="_blank" rel="noreferrer" class="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-[#FAF8F5] transition-colors" title="View Documentation">
-          <i data-lucide="help-circle" class="w-5 h-5"></i>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content Layout -->
-  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-    <!-- LEFT COLUMN: Upload & Configuration Card (5 Cols) -->
-    <section id="config-section" class="lg:col-span-5 bg-white border border-[#E8DEF8] rounded-2xl p-6 shadow-sm space-y-6">
-      
-      <!-- Section Title -->
-      <div>
-        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <i data-lucide="file-up" class="w-4 h-4 text-[#E8B4B8]"></i>
-          1. Upload Source PDF
-        </h2>
-        <p class="text-xs text-slate-500 mt-0.5">Supports textbooks, medical manuals, and large files (up to 95MB+)</p>
-      </div>
-
-      <!-- File Dropzone -->
-      <div id="pdf-dropzone" class="border-2 border-dashed border-[#E8DEF8] hover:border-[#E8B4B8] rounded-xl p-6 text-center cursor-pointer bg-[#FAF8F5]/60 hover:bg-[#FAF8F5] transition-all relative group">
-        <input type="file" id="pdf-file-input" accept="application/pdf" class="hidden" />
-        
-        <div id="dropzone-prompt" class="space-y-3">
-          <div class="w-12 h-12 rounded-full bg-[#E8DEF8]/50 text-[#1E293B] mx-auto flex items-center justify-center group-hover:scale-110 transition-transform">
-            <i data-lucide="upload-cloud" class="w-6 h-6 text-[#1E293B]"></i>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-slate-800">Drag & drop your PDF file here</p>
-            <p class="text-xs text-slate-500 mt-1">or <span class="text-[#1E293B] font-semibold underline underline-offset-2">browse file</span> from your device</p>
-          </div>
-          <p class="text-[11px] text-slate-400">PDF documents only • Fast local rendering</p>
-        </div>
-
-        <!-- Selected File Banner -->
-        <div id="selected-file-card" class="hidden text-left bg-white border border-[#A8C3A8] rounded-lg p-3.5 flex items-center justify-between shadow-sm">
-          <div class="flex items-center gap-3 overflow-hidden">
-            <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-              <i data-lucide="file-text" class="w-5 h-5"></i>
-            </div>
-            <div class="truncate">
-              <p id="file-name-txt" class="text-xs font-bold text-slate-800 truncate">document.pdf</p>
-              <p id="file-meta-txt" class="text-[11px] text-slate-500">0 MB • Calculating pages...</p>
-            </div>
-          </div>
-          <button id="btn-remove-pdf" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 transition-colors shrink-0" title="Remove PDF">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-
-      <hr class="border-[#E8DEF8]" />
-
-      <!-- Section Title: Conversion Options -->
-      <div>
-        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <i data-lucide="sliders" class="w-4 h-4 text-[#A8C3A8]"></i>
-          2. Conversion & Packaging Options
-        </h2>
-        <p class="text-xs text-slate-500 mt-0.5">Optimize image rendering quality vs export file size</p>
-      </div>
-
-      <!-- Settings Controls -->
-      <div class="space-y-4 text-xs">
-        
-        <!-- Quality Preset -->
-        <div>
-          <label id="lbl-quality" for="quality-preset" class="block font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
-            <span>Rendering Quality Preset</span>
-            <span id="quality-badge" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Balanced (1.4x DPI)</span>
-          </label>
-          <select id="quality-preset" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none">
-            <option value="compact">Compact (1.0x DPI - Best for 95MB+ Textbooks / 300+ Pages)</option>
-            <option value="balanced" selected>Balanced (1.4x DPI - Recommended Crisp Text)</option>
-            <option value="high">High Quality (1.8x DPI - Maximum Clarity for Desktop Spread)</option>
-          </select>
-        </div>
-
-        <!-- JPEG Compression Quality -->
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <label id="lbl-compression" for="jpeg-quality-slider" class="font-semibold text-slate-700">JPEG Compression Quality</label>
-            <span id="jpeg-quality-val" class="font-bold text-slate-800">80%</span>
-          </div>
-          <input type="range" id="jpeg-quality-slider" min="50" max="95" step="5" value="80" class="w-full accent-[#1E293B] cursor-pointer" />
-          <p class="text-[10px] text-slate-400 mt-0.5">Lower compression reduces HTML export file size</p>
-        </div>
-
-        <!-- Page Range -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label id="lbl-range-type" for="page-range-select" class="block font-semibold text-slate-700 mb-1">Page Range</label>
-            <select id="page-range-select" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none">
-              <option value="all" selected>All Pages</option>
-              <option value="custom">Custom Range</option>
-            </select>
-          </div>
-          <div id="custom-range-box" class="opacity-50 pointer-events-none transition-opacity">
-            <label id="lbl-range-input" for="custom-range-input" class="block font-semibold text-slate-700 mb-1">e.g. 1-50</label>
-            <input type="text" id="custom-range-input" placeholder="1-50" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none" />
-          </div>
-        </div>
-
-        <!-- Metadata Input -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label id="lbl-ebook-title" for="ebook-title-input" class="block font-semibold text-slate-700 mb-1">Ebook Title</label>
-            <input type="text" id="ebook-title-input" placeholder="Interactive Ebook" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none" />
-          </div>
-          <div>
-            <label id="lbl-ebook-author" for="ebook-author-input" class="block font-semibold text-slate-700 mb-1">Author / Publisher</label>
-            <input type="text" id="ebook-author-input" placeholder="PDF Converter Pro" class="w-full bg-[#FAF8F5] border border-[#E8DEF8] rounded-lg px-3 py-2 text-slate-800 font-medium focus:ring-2 focus:ring-[#A8C3A8] focus:outline-none" />
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Convert Action Button -->
-      <button id="btn-start-convert" disabled class="w-full py-3.5 px-4 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed group">
-        <i data-lucide="file-code-2" class="w-4 h-4"></i>
-        <span>Convert to Standalone HTML Ebook</span>
-      </button>
-
-      <div class="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1.5">
-        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
-        100% Client-side processing. Your PDF never leaves your browser.
-      </div>
-
-    </section>
-
-    <!-- RIGHT COLUMN: Conversion Progress, Live Preview & Download (7 Cols) -->
-    <section id="status-preview-section" class="lg:col-span-7 space-y-6">
-
-      <!-- DEFAULT / IDLE STATE CARD -->
-      <div id="card-idle-info" class="bg-white border border-[#E8DEF8] rounded-2xl p-8 shadow-sm space-y-6 text-center">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#E8B4B8]/30 to-[#A8C3A8]/30 mx-auto flex items-center justify-center">
-          <i data-lucide="book-open" class="w-8 h-8 text-[#1E293B]"></i>
-        </div>
-
-        <div class="max-w-md mx-auto">
-          <h3 class="text-lg font-bold text-slate-900">Standalone 3D Flipbook Converter</h3>
-          <p class="text-xs text-slate-500 mt-1">Transform PDFs into self-contained HTML ebooks with zero external server dependencies. Saved ebooks open natively on phones, tablets, and PCs offline.</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <i data-lucide="rotate-3d" class="w-4 h-4 text-[#E8B4B8]"></i>
-              Realistic 3D Page Flip
-            </div>
-            <p class="text-[11px] text-slate-500">Fluid corner drag & touch-swipe page turning powered by StPageFlip.</p>
-          </div>
-
-          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <i data-lucide="wifi-off" class="w-4 h-4 text-[#A8C3A8]"></i>
-              100% Offline Standalone
-            </div>
-            <p class="text-[11px] text-slate-500">Download a single `.html` file that works forever with no monthly subscriptions.</p>
-          </div>
-
-          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <i data-lucide="smartphone" class="w-4 h-4 text-[#1E293B]"></i>
-              Mobile Responsive Spread
-            </div>
-            <p class="text-[11px] text-slate-500">Single page view on phones, dual open-book spread on tablet/desktop screens.</p>
-          </div>
-
-          <div class="bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3.5 space-y-1">
-            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <i data-lucide="bookmark-check" class="w-4 h-4 text-[#E8B4B8]"></i>
-              Reading Memory & Zoom
-            </div>
-            <p class="text-[11px] text-slate-500">Pinch-to-zoom, page jump input, thumbnail drawer, and last page memory.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ACTIVE CONVERSION PROGRESS CARD -->
-      <div id="card-conversion-progress" class="hidden bg-white border border-[#E8DEF8] rounded-2xl p-6 shadow-sm space-y-5">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-[#E8DEF8] text-[#1E293B] flex items-center justify-center animate-spin">
-              <i data-lucide="loader-2" class="w-5 h-5"></i>
-            </div>
-            <div>
-              <h3 id="progress-title-txt" class="text-sm font-bold text-slate-900">Converting PDF Pages...</h3>
-              <p id="progress-subtitle-txt" class="text-xs text-slate-500">Rendering page 0 of 0</p>
-            </div>
-          </div>
-          <span id="progress-pct-badge" class="text-xs font-extrabold text-[#1E293B] bg-[#FAF8F5] px-3 py-1 rounded-lg border border-[#E8DEF8]">0%</span>
-        </div>
-
-        <!-- Progress Bar Container -->
-        <div class="w-full bg-[#FAF8F5] border border-[#E8DEF8] h-3 rounded-full overflow-hidden p-0.5">
-          <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-[#E8B4B8] via-[#A8C3A8] to-[#1E293B] rounded-full transition-all duration-200 w-0"></div>
-        </div>
-
-        <!-- Micro Progress Steps -->
-        <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
-          <div id="step-1-badge" class="p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium">
-            1. Parse PDF
-          </div>
-          <div id="step-2-badge" class="p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium">
-            2. Render Canvases
-          </div>
-          <div id="step-3-badge" class="p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium">
-            3. Package HTML
-          </div>
-        </div>
-
-        <!-- Live Rendered Page Thumbnails Grid -->
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Live Page Render Queue</span>
-            <span id="page-count-status" class="text-[11px] font-mono text-slate-500">0 Pages Ready</span>
-          </div>
-          <div id="live-thumb-grid" class="h-40 overflow-y-auto bg-[#FAF8F5] border border-[#E8DEF8] rounded-xl p-3 grid grid-cols-4 sm:grid-cols-6 gap-2">
-            <!-- Dynamically populated page thumbnails -->
-          </div>
-        </div>
-      </div>
-
-      <!-- SUCCESS / CONVERTED READY CARD -->
-      <div id="card-conversion-success" class="hidden bg-white border border-[#A8C3A8] rounded-2xl p-6 shadow-sm space-y-6">
-        <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-emerald-950">Flipbook Conversion Complete!</h3>
-              <p id="success-summary-txt" class="text-xs text-emerald-700">Converted 0 pages into a standalone HTML ebook file.</p>
-            </div>
-          </div>
-          <span id="export-size-badge" class="text-xs font-mono font-bold text-emerald-800 bg-white px-2.5 py-1 rounded-md border border-emerald-300">~0 MB</span>
-        </div>
-
-        <!-- Primary Download Action -->
-        <div class="space-y-3">
-          <button id="btn-download-html" class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3 group">
-            <i data-lucide="download" class="w-5 h-5 group-hover:translate-y-0.5 transition-transform"></i>
-            <span>📥 Download Standalone Flipbook Ebook (.html)</span>
-          </button>
-          
-          <div class="flex gap-3">
-            <button id="btn-launch-preview" class="flex-1 py-2.5 px-4 rounded-xl border border-[#E8DEF8] bg-[#FAF8F5] hover:bg-white text-slate-800 font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-2">
-              <i data-lucide="eye" class="w-4 h-4 text-[#E8B4B8]"></i>
-              <span>Test Live Flipbook Preview</span>
-            </button>
-            <button id="btn-convert-another" class="py-2.5 px-4 rounded-xl border border-[#E8DEF8] text-slate-600 hover:text-slate-900 font-semibold text-xs hover:bg-[#FAF8F5] transition-colors">
-              Convert Another PDF
-            </button>
-          </div>
-        </div>
-
-        <!-- Embedded Interactive Preview Area -->
-        <div id="live-preview-wrapper" class="hidden border border-[#E8DEF8] rounded-xl overflow-hidden bg-[#FAF8F5]">
-          <div class="bg-white border-b border-[#E8DEF8] px-4 py-2.5 flex justify-between items-center text-xs font-bold text-slate-700">
-            <span class="flex items-center gap-2">
-              <i data-lucide="monitor-play" class="w-4 h-4 text-[#A8C3A8]"></i>
-              Live Interactive Flipbook Test
-            </span>
-            <button id="btn-close-live-preview" class="p-1 text-slate-400 hover:text-slate-800">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          </div>
-          <iframe id="live-preview-iframe" class="w-full h-[500px] border-none bg-[#FAF8F5]"></iframe>
-        </div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- Footer -->
-  <footer id="main-footer" class="mt-auto border-t border-[#E8DEF8] bg-white py-4 px-6 text-center text-xs text-slate-500">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-      <p>PDF Flipbook Converter Pro • Standalone HTML Generator</p>
-      <p class="text-[11px] text-slate-400">Powered by PDF.js & StPageFlip • Zero API Dependencies</p>
-    </div>
-  </footer>
-
-  <!-- JAVASCRIPT APP LOGIC -->
-  <script>
-    // State Variables
-    let currentPdfDoc = null;
-    let selectedFile = null;
-    let renderedPagesData = []; // Array of { pageNum, width, height, dataUrl }
-    let generatedHtmlString = "";
-    let isConverting = false;
-
-    // DOM Elements
-    const pdfFileInput = document.getElementById('pdf-file-input');
-    const pdfDropzone = document.getElementById('pdf-dropzone');
-    const dropzonePrompt = document.getElementById('dropzone-prompt');
-    const selectedFileCard = document.getElementById('selected-file-card');
-    const fileNameTxt = document.getElementById('file-name-txt');
-    const fileMetaTxt = document.getElementById('file-meta-txt');
-    const btnRemovePdf = document.getElementById('btn-remove-pdf');
-
-    const qualityPresetSelect = document.getElementById('quality-preset');
-    const qualityBadge = document.getElementById('quality-badge');
-    const jpegQualitySlider = document.getElementById('jpeg-quality-slider');
-    const jpegQualityVal = document.getElementById('jpeg-quality-val');
-    const pageRangeSelect = document.getElementById('page-range-select');
-    const customRangeBox = document.getElementById('custom-range-box');
-    const customRangeInput = document.getElementById('custom-range-input');
-    const ebookTitleInput = document.getElementById('ebook-title-input');
-    const ebookAuthorInput = document.getElementById('ebook-author-input');
-
-    const btnStartConvert = document.getElementById('btn-start-convert');
-    const btnQuickSample = document.getElementById('btn-quick-sample');
-
-    const cardIdleInfo = document.getElementById('card-idle-info');
-    const cardConversionProgress = document.getElementById('card-conversion-progress');
-    const cardConversionSuccess = document.getElementById('card-conversion-success');
-
-    const progressTitleTxt = document.getElementById('progress-title-txt');
-    const progressSubtitleTxt = document.getElementById('progress-subtitle-txt');
-    const progressPctBadge = document.getElementById('progress-pct-badge');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const pageCountStatus = document.getElementById('page-count-status');
-    const liveThumbGrid = document.getElementById('live-thumb-grid');
-
-    const step1Badge = document.getElementById('step-1-badge');
-    const step2Badge = document.getElementById('step-2-badge');
-    const step3Badge = document.getElementById('step-3-badge');
-
-    const successSummaryTxt = document.getElementById('success-summary-txt');
-    const exportSizeBadge = document.getElementById('export-size-badge');
-    const btnDownloadHtml = document.getElementById('btn-download-html');
-    const btnLaunchPreview = document.getElementById('btn-launch-preview');
-    const btnConvertAnother = document.getElementById('btn-convert-another');
-    const livePreviewWrapper = document.getElementById('live-preview-wrapper');
-    const livePreviewIframe = document.getElementById('live-preview-iframe');
-    const btnCloseLivePreview = document.getElementById('btn-close-live-preview');
-
-    // Initialize Lucide Icons
-    lucide.createIcons();
-
-    // Event Listeners for File Selection
-    pdfDropzone.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-remove-pdf')) return;
-      pdfFileInput.click();
-    });
-
-    pdfFileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        handleFileSelect(e.target.files[0]);
-      }
-    });
-
-    // Drag and Drop
-    pdfDropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      pdfDropzone.classList.add('border-[#E8B4B8]', 'bg-[#FAF8F5]');
-    });
-
-    pdfDropzone.addEventListener('dragleave', () => {
-      pdfDropzone.classList.remove('border-[#E8B4B8]', 'bg-[#FAF8F5]');
-    });
-
-    pdfDropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      pdfDropzone.classList.remove('border-[#E8B4B8]', 'bg-[#FAF8F5]');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        const file = e.dataTransfer.files[0];
-        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-          handleFileSelect(file);
-        } else {
-          alert('Please select a valid PDF document.');
-        }
-      }
-    });
-
-    btnRemovePdf.addEventListener('click', (e) => {
-      e.stopPropagation();
-      resetFileSelection();
-    });
-
-    // Option Controls Listeners
-    qualityPresetSelect.addEventListener('change', () => {
-      const val = qualityPresetSelect.value;
-      if (val === 'compact') {
-        qualityBadge.innerText = 'Compact (1.0x DPI)';
-        qualityBadge.className = 'text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200';
-      } else if (val === 'balanced') {
-        qualityBadge.innerText = 'Balanced (1.4x DPI)';
-        qualityBadge.className = 'text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200';
-      } else {
-        qualityBadge.innerText = 'High Quality (1.8x DPI)';
-        qualityBadge.className = 'text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200';
-      }
-    });
-
-    jpegQualitySlider.addEventListener('input', () => {
-      jpegQualityVal.innerText = `${jpegQualitySlider.value}%`;
-    });
-
-    pageRangeSelect.addEventListener('change', () => {
-      if (pageRangeSelect.value === 'custom') {
-        customRangeBox.classList.remove('opacity-50', 'pointer-events-none');
-        customRangeInput.focus();
-      } else {
-        customRangeBox.classList.add('opacity-50', 'pointer-events-none');
-      }
-    });
-
-    // Sample PDF Loader
-    btnQuickSample.addEventListener('click', async () => {
-      try {
-        btnQuickSample.disabled = true;
-        btnQuickSample.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Loading...`;
-        lucide.createIcons();
-
-        // Create a synthetic sample PDF blob or load standard test PDF
-        const sampleUrl = 'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf';
-        const res = await fetch(sampleUrl);
-        if (!res.ok) throw new Error('Failed to fetch sample');
-        const blob = await res.blob();
-        const file = new File([blob], 'TraceMonkey_Research_Paper.pdf', { type: 'application/pdf' });
-        
-        handleFileSelect(file);
-      } catch (err) {
-        alert('Could not load sample PDF: ' + err.message);
-      } finally {
-        btnQuickSample.disabled = false;
-        btnQuickSample.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-[#E8B4B8]"></i> Load Sample Doc`;
-        lucide.createIcons();
-      }
-    });
-
-    // Start Conversion Trigger
-    btnStartConvert.addEventListener('click', startConversion);
-
-    btnDownloadHtml.addEventListener('click', downloadStandaloneHtml);
-
-    btnLaunchPreview.addEventListener('click', () => {
-      livePreviewWrapper.classList.remove('hidden');
-      livePreviewIframe.srcdoc = generatedHtmlString;
-      livePreviewWrapper.scrollIntoView({ behavior: 'smooth' });
-    });
-
-    btnCloseLivePreview.addEventListener('click', () => {
-      livePreviewWrapper.classList.add('hidden');
-      livePreviewIframe.srcdoc = '';
-    });
-
-    btnConvertAnother.addEventListener('click', () => {
-      cardConversionSuccess.classList.add('hidden');
-      cardIdleInfo.classList.remove('hidden');
-      resetFileSelection();
-    });
-
-    // File Handler Function
-    async function handleFileSelect(file) {
-      selectedFile = file;
-      fileNameTxt.innerText = file.name;
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      fileMetaTxt.innerText = `${sizeMB} MB • Reading document pages...`;
-
-      dropzonePrompt.classList.add('hidden');
-      selectedFileCard.classList.remove('hidden');
-
-      // Default Title from file name
-      const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-      if (!ebookTitleInput.value) ebookTitleInput.value = cleanTitle;
-
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        currentPdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        fileMetaTxt.innerText = `${sizeMB} MB • ${currentPdfDoc.numPages} Pages detected`;
-
-        // Enable convert button
-        btnStartConvert.disabled = false;
-        btnStartConvert.className = 'w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer';
-      } catch (err) {
-        fileMetaTxt.innerText = `Error loading PDF: ${err.message}`;
-        btnStartConvert.disabled = true;
-      }
-    }
-
-    function resetFileSelection() {
-      selectedFile = null;
-      currentPdfDoc = null;
-      pdfFileInput.value = '';
-      dropzonePrompt.classList.remove('hidden');
-      selectedFileCard.classList.add('hidden');
-
-      btnStartConvert.disabled = true;
-      btnStartConvert.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-300 text-slate-500 font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed';
-    }
-
-    // MAIN CONVERSION CONTROLLER
-    async function startConversion() {
-      if (!currentPdfDoc || isConverting) return;
-
-      isConverting = true;
-      renderedPagesData = [];
-      generatedHtmlString = "";
-      liveThumbGrid.innerHTML = "";
-
-      // UI Stage Transitions
-      cardIdleInfo.classList.add('hidden');
-      cardConversionSuccess.classList.add('hidden');
-      livePreviewWrapper.classList.add('hidden');
-      cardConversionProgress.classList.remove('hidden');
-
-      updateProgress(5, "Step 1/3: Parsing PDF Structure...", "Reading page layout and bounding boxes...");
-      setStepActive(step1Badge);
-
-      try {
-        const totalPagesInDoc = currentPdfDoc.numPages;
-        
-        // Parse custom page range if selected
-        let pagesToRender = [];
-        if (pageRangeSelect.value === 'custom' && customRangeInput.value.trim()) {
-          const rangeStr = customRangeInput.value.trim();
-          const match = rangeStr.match(/^(\d+)\s*-\s*(\d+)$/);
-          if (match) {
-            const start = Math.max(1, parseInt(match[1]));
-            const end = Math.min(totalPagesInDoc, parseInt(match[2]));
-            for (let i = start; i <= end; i++) pagesToRender.push(i);
-          }
-        }
-        if (pagesToRender.length === 0) {
-          for (let i = 1; i <= totalPagesInDoc; i++) pagesToRender.push(i);
-        }
-
-        // Determine Scale Factor from Preset with High-DPI support
-        let basePresetScale = 1.5; // default balanced
-        if (qualityPresetSelect.value === 'compact') basePresetScale = 1.1;
-        else if (qualityPresetSelect.value === 'high') basePresetScale = 2.0;
-
-        // Factor in Device Pixel Ratio (dpr) for double-resolution high-DPI crispness
-        const dpr = window.devicePixelRatio || 1;
-        const scaleFactor = Math.min(basePresetScale * Math.max(1, dpr * 0.85), 2.8);
-
-        const jpegQuality = parseInt(jpegQualitySlider.value) / 100;
-
-        setStepActive(step2Badge);
-
-        // Render Pages Sequentially in Batches
-        const totalToProcess = pagesToRender.length;
-        for (let idx = 0; idx < totalToProcess; idx++) {
-          const pageNum = pagesToRender[idx];
-          
-          const pct = Math.round(10 + ((idx + 1) / totalToProcess) * 75);
-          updateProgress(pct, `Step 2/3: Rendering Page ${idx + 1} of ${totalToProcess}`, `Converting page ${pageNum} to high-DPI image buffer...`);
-          
-          const pageObj = await currentPdfDoc.getPage(pageNum);
-          const viewport = pageObj.getViewport({ scale: scaleFactor });
-
-          // Offscreen Canvas
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d', { alpha: false });
-          canvas.width = Math.floor(viewport.width);
-          canvas.height = Math.floor(viewport.height);
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-
-          await pageObj.render({
-            canvasContext: ctx,
-            viewport: viewport
-          }).promise;
-
-          // Compress to JPEG Data URL
-          const dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
-
-          renderedPagesData.push({
-            pageNum: pageNum,
-            width: canvas.width,
-            height: canvas.height,
-            dataUrl: dataUrl
-          });
-
-          // Add thumbnail preview item
-          addLiveThumbnail(idx + 1, dataUrl);
-          pageCountStatus.innerText = `${renderedPagesData.length} Pages Processed`;
-
-          // Clean memory references
-          canvas.width = 0;
-          canvas.height = 0;
-
-          // Yield UI thread to keep smooth progress & avoid OOM on huge 95MB+ PDFs
-          await new Promise(r => setTimeout(r, 15));
-        }
-
-        // Step 3: Package into Standalone HTML Template
-        setStepActive(step3Badge);
-        updateProgress(90, "Step 3/3: Packaging Standalone Ebook...", "Bundling 3D StPageFlip renderer and image assets...");
-
-        const title = ebookTitleInput.value.trim() || 'Interactive Flipbook';
-        const author = ebookAuthorInput.value.trim() || 'PDF Converter Pro';
-
-        generatedHtmlString = buildStandaloneHtml(title, author, renderedPagesData);
-
-        updateProgress(100, "Conversion Finished!", "Your ebook is ready to download.");
-
-        // Calculate size estimate
-        const bytes = new Blob([generatedHtmlString]).size;
-        const mbSize = (bytes / (1024 * 1024)).toFixed(2);
-
-        exportSizeBadge.innerText = `~${mbSize} MB`;
-        successSummaryTxt.innerText = `Successfully packaged ${renderedPagesData.length} pages into a 100% offline HTML flipbook.`;
-
-        cardConversionProgress.classList.add('hidden');
-        cardConversionSuccess.classList.remove('hidden');
-
-      } catch (err) {
-        alert("Error during conversion: " + err.message);
-        cardConversionProgress.classList.add('hidden');
-        cardIdleInfo.classList.remove('hidden');
-      } finally {
-        isConverting = false;
-      }
-    }
-
-    function updateProgress(pct, title, subtitle) {
-      progressBarFill.style.width = `${pct}%`;
-      progressPctBadge.innerText = `${pct}%`;
-      progressTitleTxt.innerText = title;
-      progressSubtitleTxt.innerText = subtitle;
-    }
-
-    function setStepActive(badgeEl) {
-      [step1Badge, step2Badge, step3Badge].forEach(el => {
-        el.className = "p-2 rounded-lg bg-[#FAF8F5] border border-[#E8DEF8] text-slate-400 font-medium";
-      });
-      badgeEl.className = "p-2 rounded-lg bg-[#1E293B] border border-[#1E293B] text-white font-bold shadow-sm";
-    }
-
-    function addLiveThumbnail(pageNum, dataUrl) {
-      const card = document.createElement('div');
-      card.className = "relative rounded border border-[#E8DEF8] overflow-hidden bg-white group shadow-2xs";
-      card.innerHTML = `
-        <img src="${dataUrl}" class="w-full h-16 object-cover" alt="Page ${pageNum}" />
-        <span class="absolute bottom-0.5 right-0.5 bg-slate-900/80 text-white text-[9px] font-mono px-1 rounded">p.${pageNum}</span>
-      `;
-      liveThumbGrid.appendChild(card);
-      liveThumbGrid.scrollTop = liveThumbGrid.scrollHeight;
-    }
-
-    function downloadStandaloneHtml() {
-      if (!generatedHtmlString) return;
-
-      const title = (ebookTitleInput.value.trim() || 'Flipbook_Ebook').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const filename = `${title}_Standalone.html`;
-
-      const blob = new Blob([generatedHtmlString], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    // BUILDER FUNCTION FOR THE EXPORTED STANDALONE FLIPBOOK HTML FILE
-    function buildStandaloneHtml(title, author, pages) {
-      const safeTitle = title.replace(/"/g, '&quot;');
-      const safeAuthor = author.replace(/"/g, '&quot;');
-      const pageCount = pages.length;
-      
-      // Calculate average page dimensions
-      const avgWidth = pages[0]?.width || 800;
-      const avgHeight = pages[0]?.height || 1100;
-
-      // JSON stringified page data
-      const pagesJson = JSON.stringify(pages);
-
-      const scriptOpen = '<' + 'script>';
-      const scriptClose = '<' + '/script>';
-      const scriptTailwind = '<' + 'script src="https://cdn.tailwindcss.com"><' + '/script>';
-      const scriptLucide = '<' + 'script src="https://unpkg.com/lucide@latest"><' + '/script>';
-      const scriptPageFlip = '<' + 'script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"><' + '/script>';
-
-      return `<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
-  <title>${safeTitle} - 3D Flipbook Ebook</title>
-
-  <!-- Tailwind CSS & Lucide Icons via CDN -->
-  ${scriptTailwind}
-  ${scriptLucide}
-
-  <!-- StPageFlip CDN -->
-  ${scriptPageFlip}
-
-  <style>
-    :root {
-      --sat: env(safe-area-inset-top, 0px);
-      --sab: env(safe-area-inset-bottom, 0px);
-      --sal: env(safe-area-inset-left, 0px);
-      --sar: env(safe-area-inset-right, 0px);
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      position: fixed;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-    }
-
-    /* Soft Pastel & Contrast Themes */
-    body.theme-pastel { background-color: #FAF8F5; color: #1E293B; }
-    body.theme-dark { background-color: #0F172A; color: #F8FAFC; }
-    body.theme-sepia { background-color: #FBF0D9; color: #432818; }
-
-    /* Compact Fixed Header Toolbar with Notch Adaptation */
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: calc(52px + var(--sat));
-      padding-top: var(--sat);
-      padding-left: calc(12px + var(--sal));
-      padding-right: calc(12px + var(--sar));
-      z-index: 50;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-      transition: background-color 0.2s, border-color 0.2s;
-    }
-
-    body.theme-dark header {
-      background-color: rgba(15, 23, 42, 0.94);
-      border-bottom-color: rgba(30, 41, 59, 0.8);
-    }
-
-    body.theme-sepia header {
-      background-color: rgba(251, 240, 217, 0.96);
-      border-bottom-color: rgba(214, 192, 150, 0.8);
-    }
-
-    /* Maximized Viewport Engine */
-    #book-viewport {
-      position: absolute;
-      top: calc(52px + var(--sat));
-      bottom: var(--sab);
-      left: var(--sal);
-      right: var(--sar);
-      width: auto;
-      height: auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      padding: 4px;
-    }
-
-    /* Stage for Dynamic Zooming & Panning */
-    #zoom-stage {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.08s ease-out;
-      transform-origin: center center;
-      will-change: transform;
-    }
-
-    #flipbook-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.25);
-      border-radius: 4px;
-    }
-
-    .page-item {
-      background-color: #ffffff;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    .page-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-
-    /* Drawer Animation & Styling */
-    #thumb-drawer {
-      position: fixed;
-      top: calc(52px + var(--sat));
-      left: 0;
-      bottom: var(--sab);
-      width: 280px;
-      z-index: 60;
-      padding: 16px;
-      padding-left: calc(16px + var(--sal));
-      overflow-y: auto;
-      transform: translateX(-100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 10px 0 30px rgba(0,0,0,0.25);
-    }
-    #thumb-drawer.open {
-      transform: translateX(0);
-    }
-
-    /* Floating Zoom HUD Badge */
-    #zoom-indicator {
-      position: fixed;
-      bottom: calc(16px + var(--sab));
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 40;
-      background: rgba(15, 23, 42, 0.88);
-      color: #ffffff;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      pointer-events: none;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-    #zoom-indicator.visible {
-      opacity: 1;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Offline HTML Flipbook Exporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #FAF8F5; color: #1E293B; }
+        .drop-zone { border: 2px dashed #CBD5E1; transition: all 0.2s; }
+        .drop-zone.dragover { background: #F1F5F9; border-color: #94A3B8; }
+    </style>
 </head>
-<body class="theme-pastel h-full flex flex-col">
+<body class="h-full flex flex-col items-center justify-center p-6">
 
-  <!-- Top Toolbar Navigation -->
-  <header>
+<div class="w-full max-w-2xl bg-white rounded-xl shadow-xl p-8 border border-slate-200">
+    <h1 class="text-2xl font-bold text-center mb-2">PDF to Offline Flipbook</h1>
+    <p class="text-center text-slate-500 mb-8">Create a 100% offline, standalone HTML flipbook from any PDF.</p>
+
+    <div class="space-y-6">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Book Title</label>
+            <input type="text" id="meta-title" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. My Awesome Book">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Author</label>
+            <input type="text" id="meta-author" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Jane Doe">
+        </div>
+
+        <div id="drop-zone" class="drop-zone rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer bg-slate-50">
+            <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-400 mb-3"></i>
+            <p class="text-sm text-slate-600 font-medium">Click or drag PDF here</p>
+            <p class="text-xs text-slate-400 mt-1">Embeds raw PDF. Max size ~50MB recommended.</p>
+            <input type="file" id="file-input" accept="application/pdf" class="hidden">
+        </div>
+
+        <div id="file-info" class="hidden flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
+            <div class="flex items-center gap-3">
+                <i data-lucide="file-text" class="w-5 h-5 text-blue-500"></i>
+                <div>
+                    <p id="file-name" class="text-sm font-medium text-blue-900">filename.pdf</p>
+                    <p id="file-size" class="text-xs text-blue-600">2.5 MB</p>
+                </div>
+            </div>
+            <button id="btn-remove" class="p-1 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <button id="btn-export" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+            <span id="btn-text">Generate Offline HTML</span>
+        </button>
+
+        <div id="progress-container" class="hidden space-y-2">
+            <div class="flex justify-between text-xs font-medium text-slate-600">
+                <span id="progress-text">Processing...</span>
+                <span id="progress-pct">0%</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div id="progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+lucide.createIcons();
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const fileInfo = document.getElementById('file-info');
+const fileName = document.getElementById('file-name');
+const fileSize = document.getElementById('file-size');
+const btnRemove = document.getElementById('btn-remove');
+const btnExport = document.getElementById('btn-export');
+const btnText = document.getElementById('btn-text');
+const titleInput = document.getElementById('meta-title');
+const authorInput = document.getElementById('meta-author');
+const progressContainer = document.getElementById('progress-container');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+const progressPct = document.getElementById('progress-pct');
+
+let currentFile = null;
+let currentBase64 = null;
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+btnRemove.addEventListener('click', () => {
+    currentFile = null;
+    currentBase64 = null;
+    fileInfo.classList.add('hidden');
+    dropZone.classList.remove('hidden');
+    btnExport.disabled = true;
+    fileInput.value = '';
+});
+
+function handleFile(file) {
+    if (file.type !== 'application/pdf') {
+        alert('Please select a valid PDF file.');
+        return;
+    }
+    currentFile = file;
+    fileName.textContent = file.name;
+    fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
     
-    <div class="flex items-center gap-2.5">
-      <button id="btn-toggle-drawer" class="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Table of Contents / Thumbnails">
-        <i data-lucide="layout-grid" class="w-4 h-4"></i>
-      </button>
-      <div class="truncate max-w-[130px] sm:max-w-xs md:max-w-md">
-        <h1 class="text-xs font-bold text-slate-900 dark:text-white truncate">${safeTitle}</h1>
-        <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">${safeAuthor}</p>
-      </div>
-    </div>
+    if (!titleInput.value) {
+        titleInput.value = file.name.replace('.pdf', '');
+    }
 
-    <!-- Center Navigation Jump Controls -->
-    <div class="flex items-center gap-1">
-      <button id="btn-first-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="First Page">
-        <i data-lucide="chevrons-left" class="w-4 h-4"></i>
-      </button>
-      <button id="btn-prev-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Previous Page">
-        <i data-lucide="chevron-left" class="w-4 h-4"></i>
-      </button>
-
-      <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-        <input type="number" id="page-jump-input" min="1" max="${pageCount}" value="1" class="w-8 text-center bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none" />
-        <span class="text-xs text-slate-400">/ ${pageCount}</span>
-      </div>
-
-      <button id="btn-next-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Next Page">
-        <i data-lucide="chevron-right" class="w-4 h-4"></i>
-      </button>
-      <button id="btn-last-page" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Last Page">
-        <i data-lucide="chevrons-right" class="w-4 h-4"></i>
-      </button>
-    </div>
-
-    <!-- Right Utility Controls -->
-    <div class="flex items-center gap-1">
-      <button id="btn-zoom-out" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Zoom Out">
-        <i data-lucide="zoom-out" class="w-4 h-4"></i>
-      </button>
-      <span id="zoom-txt" class="hidden sm:inline text-[11px] font-mono font-semibold text-slate-500">100%</span>
-      <button id="btn-zoom-in" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Zoom In">
-        <i data-lucide="zoom-in" class="w-4 h-4"></i>
-      </button>
-      
-      <div class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-0.5"></div>
-
-      <!-- Theme Switcher -->
-      <button id="btn-theme-toggle" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Toggle Theme (Pastel / Dark / Sepia)">
-        <i data-lucide="palette" class="w-4 h-4"></i>
-      </button>
-
-      <button id="btn-fullscreen" class="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Fullscreen">
-        <i data-lucide="maximize-2" class="w-4 h-4"></i>
-      </button>
-    </div>
-
-  </header>
-
-  <!-- Main Viewport Canvas -->
-  <div id="book-viewport">
-    <div id="zoom-stage">
-      <div id="flipbook-container"></div>
-    </div>
-  </div>
-
-  <!-- Floating Zoom HUD Indicator -->
-  <div id="zoom-indicator">100% Zoom</div>
-
-  <!-- Thumbnails Drawer Panel -->
-  <aside id="thumb-drawer" class="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 space-y-4">
-    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
-      <span class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Page Thumbnails</span>
-      <button id="btn-close-drawer" class="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white">
-        <i data-lucide="x" class="w-4 h-4"></i>
-      </button>
-    </div>
-
-    <div id="thumb-grid" class="grid grid-cols-2 gap-3">
-      <!-- Generated Thumbnail Cards -->
-    </div>
-  </aside>
-
-  <!-- Resume Memory Toast Notification -->
-  <div id="resume-toast" class="hidden fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 border border-slate-700 text-xs font-medium animate-bounce">
-    <i data-lucide="bookmark" class="w-4 h-4 text-[#A8C3A8]"></i>
-    <span id="resume-txt">Resumed at page 1</span>
-    <button id="btn-dismiss-toast" class="ml-2 text-slate-400 hover:text-white">
-      <i data-lucide="x" class="w-3.5 h-3.5"></i>
-    </button>
-  </div>
-
-  <!-- Embedded Book Data & JS Engine -->
-  ${scriptOpen}
-    const BOOK_DATA = ${pagesJson};
-    const BOOK_META = {
-      title: "${safeTitle}",
-      author: "${safeAuthor}",
-      pageCount: ${pageCount},
-      avgWidth: ${avgWidth},
-      avgHeight: ${avgHeight}
+    dropZone.classList.add('hidden');
+    fileInfo.classList.remove('hidden');
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const b64 = e.target.result;
+        currentBase64 = b64.substring(b64.indexOf(',') + 1);
+        btnExport.disabled = false;
     };
+    reader.readAsDataURL(file);
+}
 
-    let pageFlipInstance = null;
-    let currentFlipPage = 0;
-    let themes = ['theme-pastel', 'theme-dark', 'theme-sepia'];
-    let currentThemeIdx = 0;
+function updateProgress(pct, text) {
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = `${pct}%`;
+    progressPct.textContent = `${pct}%`;
+    progressText.textContent = text;
+}
 
-    // Zoom & Pan State Variables
-    let zoomLevel = 1.0;
-    let panX = 0;
-    let panY = 0;
-    let touchStartDist = 0;
-    let touchStartZoom = 1.0;
-    let touchStartPanX = 0;
-    let touchStartPanY = 0;
-    let touchStartPos = { x: 0, y: 0 };
-    let isPanning = false;
-    let lastTapTime = 0;
+btnExport.addEventListener('click', async () => {
+    btnExport.disabled = true;
+    btnText.textContent = 'Generating...';
+    
+    try {
+        updateProgress(10, 'Fetching PDF.js Engine...');
+        const pdfJsRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js');
+        const pdfJsCode = await pdfJsRes.text();
+        
+        updateProgress(40, 'Fetching PDF.js Worker...');
+        const pdfWorkerRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js');
+        const pdfWorkerCode = await pdfWorkerRes.text();
+        
+        updateProgress(70, 'Fetching StPageFlip Engine...');
+        const pageFlipRes = await fetch('https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js');
+        const pageFlipCode = await pageFlipRes.text();
+        
+        updateProgress(85, 'Building HTML Package...');
+        
+        const exportedHtml = generateOfflineHtml(
+            titleInput.value || 'Flipbook',
+            authorInput.value || 'Unknown Author',
+            currentBase64,
+            pdfJsCode,
+            pdfWorkerCode,
+            pageFlipCode
+        );
 
-    if (window.lucide) lucide.createIcons();
-
-    document.addEventListener('DOMContentLoaded', () => {
-      calculateAndInitBook();
-      buildThumbnails();
-      setupEventListeners();
-      setupTouchAndZoomEvents();
-      checkSavedProgress();
-    });
-
-    function calculateAndInitBook() {
-      const viewport = document.getElementById('book-viewport');
-      if (!viewport) return;
-
-      const availW = Math.max(280, viewport.clientWidth - 8);
-      const availH = Math.max(320, viewport.clientHeight - 8);
-
-      const pageAspect = (BOOK_META.avgWidth && BOOK_META.avgHeight) 
-        ? (BOOK_META.avgWidth / BOOK_META.avgHeight) 
-        : 0.707;
-
-      // Portrait mode on phones / narrow screens OR when screen height > screen width
-      const isPortrait = availW < 600 || (availW < 900 && availW < availH);
-
-      let pageWidth, pageHeight;
-
-      if (isPortrait) {
-        // Single page maximized to screen bounds
-        pageWidth = Math.floor(Math.min(availW, availH * pageAspect));
-        pageHeight = Math.floor(pageWidth / pageAspect);
-      } else {
-        // Two-page open book spread maximized
-        pageWidth = Math.floor(Math.min(availW / 2, availH * pageAspect));
-        pageHeight = Math.floor(pageWidth / pageAspect);
-      }
-
-      pageWidth = Math.max(180, pageWidth);
-      pageHeight = Math.max(240, pageHeight);
-
-      const container = document.getElementById('flipbook-container');
-      container.innerHTML = '';
-
-      BOOK_DATA.forEach((pg) => {
-        const div = document.createElement('div');
-        div.className = 'page-item';
-        div.innerHTML = '<img src="' + pg.dataUrl + '" alt="Page ' + pg.pageNum + '" loading="eager" />';
-        container.appendChild(div);
-      });
-
-      if (pageFlipInstance) {
-        try {
-          currentFlipPage = pageFlipInstance.getCurrentPageIndex() || currentFlipPage;
-          pageFlipInstance.destroy();
-        } catch (e) {}
-        pageFlipInstance = null;
-      }
-
-      pageFlipInstance = new St.PageFlip(container, {
-        width: pageWidth,
-        height: pageHeight,
-        size: 'stretch',
-        minWidth: 150,
-        maxWidth: 2000,
-        minHeight: 200,
-        maxHeight: 2500,
-        maxShadowOpacity: 0.45,
-        showCover: true,
-        mobileScrollSupport: true,
-        usePortrait: isPortrait,
-        clickToFlip: true,
-        startPage: currentFlipPage
-      });
-
-      pageFlipInstance.loadFromHTML(document.querySelectorAll('.page-item'));
-
-      pageFlipInstance.on('flip', (e) => {
-        currentFlipPage = e.data;
-        const currPage = e.data + 1;
-        const jumpInput = document.getElementById('page-jump-input');
-        if (jumpInput) jumpInput.value = currPage;
-        saveProgress(currPage);
-      });
-
-      resetZoom();
-    }
-
-    function buildThumbnails() {
-      const grid = document.getElementById('thumb-grid');
-      grid.innerHTML = '';
-
-      BOOK_DATA.forEach((pg) => {
-        const item = document.createElement('div');
-        item.className = 'relative rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden cursor-pointer hover:border-slate-900 dark:hover:border-white transition-all group';
-        item.innerHTML = '<img src="' + pg.dataUrl + '" class="w-full h-24 object-cover" alt="Page ' + pg.pageNum + '" /><div class="absolute inset-0 bg-slate-900/10 group-hover:bg-transparent transition-colors"></div><span class="absolute bottom-1 right-1 bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">p.' + pg.pageNum + '</span>';
-        item.addEventListener('click', () => {
-          if (pageFlipInstance) pageFlipInstance.flip(pg.pageNum - 1);
-          toggleDrawer(false);
-        });
-        grid.appendChild(item);
-      });
-    }
-
-    function setupEventListeners() {
-      document.getElementById('btn-prev-page').addEventListener('click', () => pageFlipInstance && pageFlipInstance.flipPrev());
-      document.getElementById('btn-next-page').addEventListener('click', () => pageFlipInstance && pageFlipInstance.flipNext());
-      document.getElementById('btn-first-page').addEventListener('click', () => pageFlipInstance && pageFlipInstance.flip(0));
-      document.getElementById('btn-last-page').addEventListener('click', () => pageFlipInstance && pageFlipInstance.flip(BOOK_META.pageCount - 1));
-
-      const jumpInput = document.getElementById('page-jump-input');
-      jumpInput.addEventListener('change', () => {
-        let val = parseInt(jumpInput.value);
-        if (isNaN(val)) val = 1;
-        val = Math.max(1, Math.min(BOOK_META.pageCount, val));
-        if (pageFlipInstance) pageFlipInstance.flip(val - 1);
-      });
-
-      document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(zoomLevel + 0.25));
-      document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(zoomLevel - 0.25));
-
-      document.getElementById('btn-theme-toggle').addEventListener('click', () => {
-        document.body.classList.remove(themes[currentThemeIdx]);
-        currentThemeIdx = (currentThemeIdx + 1) % themes.length;
-        document.body.classList.add(themes[currentThemeIdx]);
-      });
-
-      document.getElementById('btn-toggle-drawer').addEventListener('click', () => toggleDrawer(true));
-      document.getElementById('btn-close-drawer').addEventListener('click', () => toggleDrawer(false));
-
-      document.getElementById('btn-fullscreen').addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        } else {
-          document.exitFullscreen().catch(() => {});
-        }
-      });
-
-      document.addEventListener('keydown', (e) => {
-        if (!pageFlipInstance) return;
-        if (e.key === 'ArrowRight' || e.key === ' ') pageFlipInstance.flipNext();
-        if (e.key === 'ArrowLeft') pageFlipInstance.flipPrev();
-        if (e.key === 'Home') pageFlipInstance.flip(0);
-        if (e.key === 'End') pageFlipInstance.flip(BOOK_META.pageCount - 1);
-        if (e.key === 'f' || e.key === 'F') {
-          if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-          else document.exitFullscreen().catch(() => {});
-        }
-      });
-
-      document.getElementById('btn-dismiss-toast').addEventListener('click', () => {
-        document.getElementById('resume-toast').classList.add('hidden');
-      });
-
-      // Window resize & orientation change handlers
-      let resizeTimer = null;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          calculateAndInitBook();
-        }, 150);
-      });
-      window.addEventListener('orientationchange', () => {
+        updateProgress(95, 'Preparing Download...');
+        
+        const blob = new Blob([exportedHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${titleInput.value || 'book'}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        updateProgress(100, 'Done!');
         setTimeout(() => {
-          calculateAndInitBook();
-        }, 200);
-      });
+            progressContainer.classList.add('hidden');
+            btnExport.disabled = false;
+            btnText.textContent = 'Generate Offline HTML';
+        }, 2000);
+
+    } catch (err) {
+        console.error(err);
+        alert('An error occurred during export. Check console for details.');
+        btnExport.disabled = false;
+        btnText.textContent = 'Generate Offline HTML';
+        progressContainer.classList.add('hidden');
     }
+});
 
-    function updateZoomTransform() {
-      const stage = document.getElementById('zoom-stage');
-      const zoomTxt = document.getElementById('zoom-txt');
-      const zoomIndicator = document.getElementById('zoom-indicator');
-
-      if (zoomLevel <= 1.01) {
-        zoomLevel = 1.0;
-        panX = 0;
-        panY = 0;
-        stage.style.transform = 'none';
-        stage.style.cursor = 'default';
-        if (zoomIndicator) zoomIndicator.classList.remove('visible');
-      } else {
-        const vp = document.getElementById('book-viewport');
-        const maxPanX = (vp.clientWidth * (zoomLevel - 1)) / 1.8;
-        const maxPanY = (vp.clientHeight * (zoomLevel - 1)) / 1.8;
-
-        panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
-        panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
-
-        stage.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoomLevel + ')';
-        stage.style.cursor = 'grab';
-
-        if (zoomIndicator) {
-          zoomIndicator.innerText = Math.round(zoomLevel * 100) + '% Zoom';
-          zoomIndicator.classList.add('visible');
+function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode, pageFlipCode) {
+    const safeTitle = title.replace(/"/g, '&quot;');
+    const safeAuthor = author.replace(/"/g, '&quot;');
+    
+    const scriptOpen = "<scr" + "ipt>";
+    const scriptClose = "</scr" + "ipt>";
+    
+    const safePdfJs = pdfJsCode.replace(/<\/script>/gi, '<\\/script>');
+    const safePdfWorker = pdfWorkerCode.replace(/<\/script>/gi, '<\\/script>');
+    const safePageFlip = pageFlipCode.replace(/<\/script>/gi, '<\\/script>');
+    
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>${safeTitle} - Offline Flipbook</title>
+    <style>
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+            --bg-color: #FAF8F5;
+            --text-color: #1E293B;
+            --toolbar-bg: rgba(255, 255, 255, 0.94);
+            --toolbar-border: rgba(226, 232, 240, 0.8);
         }
-      }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            width: 100%; height: 100%; margin: 0; padding: 0;
+            overflow: hidden; position: fixed;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color);
+            touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+        
+        /* Toolbar */
+        header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: calc(52px + var(--sat));
+            padding-top: var(--sat);
+            padding-left: calc(12px + var(--sal));
+            padding-right: calc(12px + var(--sar));
+            z-index: 50; display: flex; align-items: center; justify-content: space-between;
+            background-color: var(--toolbar-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--toolbar-border);
+        }
+        .header-title { display: flex; flex-direction: column; max-width: 200px; }
+        .header-title h1 { margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-title p { margin: 0; font-size: 10px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .toolbar-group { display: flex; align-items: center; gap: 4px; }
+        .btn { 
+            background: transparent; border: none; padding: 6px; border-radius: 6px; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: #475569; transition: background 0.2s;
+        }
+        .btn:hover { background: rgba(0,0,0,0.05); color: #0F172A; }
+        .btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        
+        .page-input-group {
+            display: flex; align-items: center; background: rgba(0,0,0,0.04);
+            border-radius: 6px; padding: 2px 6px; border: 1px solid rgba(0,0,0,0.05);
+        }
+        .page-input-group input {
+            width: 36px; text-align: center; background: transparent; border: none;
+            font-size: 12px; font-weight: bold; color: var(--text-color); outline: none;
+        }
+        .page-input-group span { font-size: 12px; color: #64748B; margin-left: 2px; }
 
-      if (zoomTxt) zoomTxt.innerText = Math.round(zoomLevel * 100) + '%';
-    }
+        /* Viewport & Zoom Stage */
+        #book-viewport {
+            position: absolute;
+            top: calc(52px + var(--sat));
+            bottom: var(--sab); left: var(--sal); right: var(--sar);
+            width: auto; height: auto;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; padding: 4px;
+        }
+        #zoom-stage {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s ease-out; transform-origin: center center;
+            will-change: transform;
+        }
+        #flipbook-container {
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 15px 35px -10px rgba(0,0,0,0.25); border-radius: 4px;
+        }
+        
+        /* Pages */
+        .page-wrapper {
+            background: #fff; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+        .page-wrapper canvas {
+            width: 100%; height: 100%;
+            object-fit: contain; pointer-events: none;
+        }
+        .page-loading {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            color: #94A3B8; font-size: 12px; font-weight: 500; background: #fff;
+        }
+        .stf__block {
+            background-color: transparent !important;
+        }
 
-    function setZoom(lvl, pivotX, pivotY) {
-      const prevZoom = zoomLevel;
-      zoomLevel = Math.max(1.0, Math.min(3.5, lvl));
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed; inset: 0; background: var(--bg-color); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(0,0,0,0.1);
+            border-top-color: #3B82F6; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-      if (zoomLevel > 1.0 && prevZoom === 1.0 && pivotX !== undefined && pivotY !== undefined) {
-        const vp = document.getElementById('book-viewport');
-        const rect = vp.getBoundingClientRect();
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        panX = (centerX - (pivotX - rect.left)) * (zoomLevel - 1);
-        panY = (centerY - (pivotY - rect.top)) * (zoomLevel - 1);
-      }
+    </style>
+</head>
+<body>
 
-      updateZoomTransform();
-    }
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div style="font-size: 14px; font-weight: 600; color: #475569;" id="loading-text">Loading Engine...</div>
+    </div>
 
-    function resetZoom() {
-      zoomLevel = 1.0;
-      panX = 0;
-      panY = 0;
-      updateZoomTransform();
-    }
+    <header>
+        <div class="toolbar-group">
+            <div class="header-title">
+                <h1>${safeTitle}</h1>
+                <p>${safeAuthor}</p>
+            </div>
+        </div>
+        <div class="toolbar-group">
+            <button class="btn" id="btn-prev" title="Previous Page">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="page-input-group">
+                <input type="number" id="page-input" value="1" min="1">
+                <span id="page-total">/ -</span>
+            </div>
+            <button class="btn" id="btn-next" title="Next Page">
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+        <div class="toolbar-group">
+            <button class="btn" id="btn-fullscreen" title="Fullscreen">
+                <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            </button>
+        </div>
+    </header>
 
-    function setupTouchAndZoomEvents() {
-      const vp = document.getElementById('book-viewport');
-      if (!vp) return;
+    <div id="book-viewport">
+        <div id="zoom-stage">
+            <div id="flipbook-container"></div>
+        </div>
+    </div>
 
-      function getTouchDistance(t1, t2) {
-        const dx = t1.clientX - t2.clientX;
-        const dy = t1.clientY - t2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
+    <!-- 100% OFFLINE BUNDLED SCRIPTS -->
+    ${scriptOpen}
+        ${safePdfJs}
+    ${scriptClose}
+    ${scriptOpen}
+        ${safePageFlip}
+    ${scriptClose}
+    <script type="text/plain" id="pdf-worker-code">
+${safePdfWorker}
+    ${scriptClose}
 
-      vp.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) {
-          touchStartDist = getTouchDistance(e.touches[0], e.touches[1]);
-          touchStartZoom = zoomLevel;
-          isPanning = false;
-        } else if (e.touches.length === 1) {
-          const now = Date.now();
-          const touch = e.touches[0];
+    <!-- MAIN APP LOGIC -->
+    ${scriptOpen}
+        const PDF_B64 = "${pdfBase64}";
+        
+        let pdfDoc = null;
+        let pageFlip = null;
+        let totalPages = 0;
+        let pdfPages = [];
+        
+        let zoomLevel = 1.0;
+        let panX = 0; let panY = 0;
+        let isPanning = false; let touchStartDist = 0; let touchStartZoom = 1;
+        let touchStartPan = {x:0, y:0}; let touchStartPos = {x:0, y:0};
+        let lastTapTime = 0;
 
-          if (now - lastTapTime < 300) {
-            if (zoomLevel > 1.05) {
-              resetZoom();
-            } else {
-              setZoom(2.0, touch.clientX, touch.clientY);
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('loading-text').innerText = 'Parsing PDF Data...';
+            try {
+                const workerEl = document.getElementById('pdf-worker-code');
+                if (workerEl) {
+                    const workerBlob = new Blob([workerEl.textContent], { type: 'text/javascript' });
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
+                }
+            } catch(e) {}
+
+            try {
+                const binaryString = atob(PDF_B64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+
+                const loadingTask = pdfjsLib.getDocument({data: bytes});
+                pdfDoc = await loadingTask.promise;
+                totalPages = pdfDoc.numPages;
+                
+                document.getElementById('page-total').innerText = '/ ' + totalPages;
+                document.getElementById('page-input').max = totalPages;
+                
+                document.getElementById('loading-text').innerText = 'Initializing Book...';
+                await initBook();
+                
+                document.getElementById('loading-screen').style.display = 'none';
+                
+                const saved = localStorage.getItem('flipbook_${safeTitle.replace(/\s+/g,'_')}');
+                if (saved) {
+                    const p = parseInt(saved, 10);
+                    if (p >= 0 && p < totalPages) {
+                        pageFlip.flip(p);
+                    }
+                }
+                
+                setupEvents();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading-text').innerText = 'Error loading PDF';
             }
-            lastTapTime = 0;
-            return;
-          }
-          lastTapTime = now;
+        });
 
-          if (zoomLevel > 1.01) {
-            isPanning = true;
-            touchStartPos = { x: touch.clientX, y: touch.clientY };
-            touchStartPanX = panX;
-            touchStartPanY = panY;
-          }
+        async function initBook() {
+            const vp = document.getElementById('book-viewport');
+            const container = document.getElementById('flipbook-container');
+            container.innerHTML = '';
+            pdfPages = new Array(totalPages).fill(null);
+            
+            const p1 = await pdfDoc.getPage(1);
+            const p1Vp = p1.getViewport({scale: 1.0});
+            const aspect = p1Vp.width / p1Vp.height;
+            
+            const availW = Math.max(280, vp.clientWidth - 8);
+            const availH = Math.max(320, vp.clientHeight - 8);
+            
+            const isPortrait = availW < 768 || availW < availH;
+            
+            let pageWidth, pageHeight;
+            
+            if (isPortrait) {
+                pageWidth = Math.floor(Math.min(availW, availH * aspect));
+                pageHeight = Math.floor(pageWidth / aspect);
+            } else {
+                pageWidth = Math.floor(Math.min(availW / 2, availH * aspect));
+                pageHeight = Math.floor(pageWidth / aspect);
+            }
+            
+            for (let i = 0; i < totalPages; i++) {
+                const d = document.createElement('div');
+                d.className = 'page-wrapper';
+                d.id = 'page-' + i;
+                d.innerHTML = '<div class="page-loading">Page ' + (i+1) + '</div>';
+                container.appendChild(d);
+            }
+            
+            if (pageFlip) pageFlip.destroy();
+            
+            pageFlip = new St.PageFlip(container, {
+                width: pageWidth,
+                height: pageHeight,
+                size: 'stretch',
+                minWidth: 150,
+                maxWidth: 2500,
+                minHeight: 200,
+                maxHeight: 3000,
+                maxShadowOpacity: 0.4,
+                showCover: true,
+                mobileScrollSupport: false,
+                usePortrait: isPortrait,
+                clickToFlip: true
+            });
+            
+            pageFlip.loadFromHTML(document.querySelectorAll('.page-wrapper'));
+            
+            pageFlip.on('flip', (e) => {
+                const p = e.data;
+                document.getElementById('page-input').value = p + 1;
+                localStorage.setItem('flipbook_${safeTitle.replace(/\s+/g,'_')}', p);
+                lazyRender(p);
+            });
+            
+            lazyRender(0);
         }
-      }, { passive: false });
 
-      vp.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2 && touchStartDist > 0) {
-          e.preventDefault();
-          const dist = getTouchDistance(e.touches[0], e.touches[1]);
-          const factor = dist / touchStartDist;
-          setZoom(touchStartZoom * factor);
-        } else if (e.touches.length === 1 && isPanning && zoomLevel > 1.01) {
-          e.preventDefault();
-          const touch = e.touches[0];
-          const dx = touch.clientX - touchStartPos.x;
-          const dy = touch.clientY - touchStartPos.y;
-          panX = touchStartPanX + dx;
-          panY = touchStartPanY + dy;
-          updateZoomTransform();
+        async function renderPage(pageNum) {
+            if (pageNum < 0 || pageNum >= totalPages) return;
+            if (pdfPages[pageNum]) return;
+            pdfPages[pageNum] = 'loading';
+            
+            try {
+                const p = await pdfDoc.getPage(pageNum + 1);
+                const dpr = window.devicePixelRatio || 1;
+                
+                const el = document.getElementById('page-' + pageNum);
+                const rect = el.getBoundingClientRect();
+                
+                const scale = (rect.height / p.getViewport({scale: 1}).height) * dpr;
+                const viewport = p.getViewport({scale: scale});
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d', {alpha: false});
+                canvas.width = Math.floor(viewport.width);
+                canvas.height = Math.floor(viewport.height);
+                
+                await p.render({ canvasContext: ctx, viewport: viewport }).promise;
+                
+                el.innerHTML = '';
+                el.appendChild(canvas);
+                pdfPages[pageNum] = true;
+            } catch(err) {
+                console.error(err);
+                pdfPages[pageNum] = null;
+            }
         }
-      }, { passive: false });
 
-      vp.addEventListener('touchend', (e) => {
-        if (e.touches.length < 2) touchStartDist = 0;
-        if (e.touches.length === 0) isPanning = false;
-      });
-
-      let isMouseDragging = false;
-      let mouseStartPos = { x: 0, y: 0 };
-      let mouseStartPan = { x: 0, y: 0 };
-
-      vp.addEventListener('mousedown', (e) => {
-        if (zoomLevel > 1.01 && e.button === 0) {
-          isMouseDragging = true;
-          mouseStartPos = { x: e.clientX, y: e.clientY };
-          mouseStartPan = { x: panX, y: panY };
-          document.getElementById('zoom-stage').style.cursor = 'grabbing';
+        function lazyRender(currentIdx) {
+            const toRender = [currentIdx];
+            if (currentIdx > 0) toRender.push(currentIdx - 1);
+            if (currentIdx > 1) toRender.push(currentIdx - 2);
+            if (currentIdx < totalPages - 1) toRender.push(currentIdx + 1);
+            if (currentIdx < totalPages - 2) toRender.push(currentIdx + 2);
+            if (currentIdx < totalPages - 3) toRender.push(currentIdx + 3);
+            
+            toRender.forEach(p => {
+                if (!pdfPages[p]) renderPage(p);
+            });
         }
-      });
 
-      window.addEventListener('mousemove', (e) => {
-        if (isMouseDragging && zoomLevel > 1.01) {
-          const dx = e.clientX - mouseStartPos.x;
-          const dy = e.clientY - mouseStartPos.y;
-          panX = mouseStartPan.x + dx;
-          panY = mouseStartPan.y + dy;
-          updateZoomTransform();
+        function setupEvents() {
+            document.getElementById('btn-prev').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
+            document.getElementById('btn-next').addEventListener('click', () => pageFlip && pageFlip.flipNext());
+            
+            document.getElementById('page-input').addEventListener('change', (e) => {
+                let v = parseInt(e.target.value, 10);
+                if (v > 0 && v <= totalPages) pageFlip.flip(v - 1);
+            });
+            
+            document.getElementById('btn-fullscreen').addEventListener('click', () => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+                else document.exitFullscreen();
+            });
+            
+            const vp = document.getElementById('book-viewport');
+            const stage = document.getElementById('zoom-stage');
+            
+            function updateTransform() {
+                if (zoomLevel <= 1.01) {
+                    zoomLevel = 1.0; panX = 0; panY = 0;
+                    stage.style.transform = 'none';
+                    stage.style.cursor = 'default';
+                } else {
+                    const maxPx = (vp.clientWidth * (zoomLevel - 1)) / 1.5;
+                    const maxPy = (vp.clientHeight * (zoomLevel - 1)) / 1.5;
+                    panX = Math.max(-maxPx, Math.min(maxPx, panX));
+                    panY = Math.max(-maxPy, Math.min(maxPy, panY));
+                    stage.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoomLevel + ')';
+                    stage.style.cursor = 'grab';
+                }
+            }
+            
+            function getTouchDist(t1, t2) {
+                const dx = t1.clientX - t2.clientX;
+                const dy = t1.clientY - t2.clientY;
+                return Math.sqrt(dx*dx + dy*dy);
+            }
+            
+            vp.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) {
+                    touchStartDist = getTouchDist(e.touches[0], e.touches[1]);
+                    touchStartZoom = zoomLevel;
+                    isPanning = false;
+                } else if (e.touches.length === 1) {
+                    const now = Date.now();
+                    if (now - lastTapTime < 300) {
+                        zoomLevel = zoomLevel > 1.05 ? 1.0 : 2.0;
+                        updateTransform();
+                        lastTapTime = 0; return;
+                    }
+                    lastTapTime = now;
+                    if (zoomLevel > 1.01) {
+                        isPanning = true;
+                        touchStartPos = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+                        touchStartPan = {x: panX, y: panY};
+                    }
+                }
+            }, {passive: false});
+            
+            vp.addEventListener('touchmove', e => {
+                if (e.touches.length === 2 && touchStartDist > 0) {
+                    e.preventDefault();
+                    const dist = getTouchDist(e.touches[0], e.touches[1]);
+                    zoomLevel = Math.max(1.0, Math.min(3.5, touchStartZoom * (dist / touchStartDist)));
+                    updateTransform();
+                } else if (e.touches.length === 1 && isPanning && zoomLevel > 1.01) {
+                    e.preventDefault();
+                    panX = touchStartPan.x + (e.touches[0].clientX - touchStartPos.x);
+                    panY = touchStartPan.y + (e.touches[0].clientY - touchStartPos.y);
+                    updateTransform();
+                }
+            }, {passive: false});
+            
+            vp.addEventListener('touchend', e => {
+                if (e.touches.length < 2) touchStartDist = 0;
+                if (e.touches.length === 0) isPanning = false;
+            });
+            
+            vp.addEventListener('wheel', e => {
+                if (e.ctrlKey || zoomLevel > 1.01) {
+                    e.preventDefault();
+                    zoomLevel = Math.max(1.0, Math.min(3.5, zoomLevel + (e.deltaY < 0 ? 0.2 : -0.2)));
+                    updateTransform();
+                }
+            }, {passive: false});
+
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => { 
+                    const cp = pageFlip.getCurrentPageIndex();
+                    initBook().then(() => {
+                        if (cp > 0) pageFlip.flip(cp);
+                    });
+                }, 200);
+            });
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => { 
+                    const cp = pageFlip.getCurrentPageIndex();
+                    initBook().then(() => {
+                        if (cp > 0) pageFlip.flip(cp);
+                    });
+                }, 200);
+            });
         }
-      });
-
-      window.addEventListener('mouseup', () => {
-        if (isMouseDragging) {
-          isMouseDragging = false;
-          if (zoomLevel > 1.01) {
-            document.getElementById('zoom-stage').style.cursor = 'grab';
-          }
-        }
-      });
-
-      vp.addEventListener('wheel', (e) => {
-        if (e.ctrlKey || zoomLevel > 1.01) {
-          e.preventDefault();
-          const delta = e.deltaY < 0 ? 0.2 : -0.2;
-          setZoom(zoomLevel + delta, e.clientX, e.clientY);
-        }
-      }, { passive: false });
-    }
-
-    function toggleDrawer(open) {
-      const drawer = document.getElementById('thumb-drawer');
-      if (open) drawer.classList.add('open');
-      else drawer.classList.remove('open');
-    }
-
-    function saveProgress(pageNum) {
-      try {
-        const storageKey = 'flipbook_last_page_' + BOOK_META.title;
-        localStorage.setItem(storageKey, pageNum);
-      } catch (e) {}
-    }
-
-    function checkSavedProgress() {
-      try {
-        const storageKey = 'flipbook_last_page_' + BOOK_META.title;
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          const pg = parseInt(saved);
-          if (pg > 1 && pg <= BOOK_META.pageCount) {
-            setTimeout(() => {
-              if (pageFlipInstance) pageFlipInstance.flip(pg - 1);
-              const toast = document.getElementById('resume-toast');
-              document.getElementById('resume-txt').innerText = 'Resumed reading at page ' + pg;
-              toast.classList.remove('hidden');
-              setTimeout(() => toast.classList.add('hidden'), 4000);
-            }, 500);
-          }
-        }
-      } catch (e) {}
-    }
-  ${scriptClose}
+    ${scriptClose}
 </body>
 </html>`;
-    }
-  </script>
+}
+</script>
 </body>
 </html>
