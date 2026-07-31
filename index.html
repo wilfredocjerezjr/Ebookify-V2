@@ -620,7 +620,7 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
         }
         #search-input {
             width: 100%;
-            padding: 6px 36px 6px 12px;
+            padding: 6px 52px 6px 12px;
             font-size: 12px;
             border: 1px solid var(--header-border);
             border-radius: 8px;
@@ -904,6 +904,9 @@ function generateOfflineHtml(title, author, pdfBase64, pdfJsCode, pdfWorkerCode,
             <div class="header-center">
                 <div class="search-container">
                     <input type="text" id="search-input" placeholder="Search chapters, pages...">
+                    <button id="search-clear-btn" class="hidden" type="button" style="position: absolute; right: 28px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748B; display: flex; align-items: center; justify-content: center; padding: 0;">
+                        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.5; fill: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                     <button class="search-btn" id="search-btn">
                         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
@@ -1397,13 +1400,6 @@ ${safePdfWorker}
                         const ty = item.transform[5];
                         const [vx, vy] = viewport.convertToViewportPoint(tx, ty);
 
-                        const isTop10Percent = vy < viewport.height * 0.10;
-                        const isBottom10Percent = vy > viewport.height * 0.90;
-
-                        if (isTop10Percent || isBottom10Percent) {
-                            if (textStr.trim().length < 20) return;
-                        }
-
                         const itemWidth = item.width || 0;
                         const itemHeight = item.height || 0;
                         const [vrx, vby] = viewport.convertToViewportPoint(tx + itemWidth, ty + itemHeight);
@@ -1426,12 +1422,13 @@ ${safePdfWorker}
                     maxY = viewport.height;
                 }
 
-                // Add a safe 12px padding margin
-                const padding = 12;
-                minX = Math.max(0, minX - padding);
-                minY = Math.max(0, minY - padding);
-                maxX = Math.min(viewport.width, maxX + padding);
-                maxY = Math.min(viewport.height, maxY + padding);
+                // Add horizontal (12px) and vertical (40px safety buffer) padding margins
+                const paddingX = 12;
+                const paddingY = 40;
+                minX = Math.max(0, minX - paddingX);
+                minY = Math.max(0, minY - paddingY);
+                maxX = Math.min(viewport.width, maxX + paddingX);
+                maxY = Math.min(viewport.height, maxY + paddingY);
 
                 const croppedWidth = maxX - minX;
                 const croppedHeight = maxY - minY;
@@ -1647,8 +1644,21 @@ ${safePdfWorker}
             // Search Input Autocomplete & Enter key Validation
             const searchInput = document.getElementById('search-input');
             const suggestionsDropdown = document.getElementById('search-suggestions');
+            const searchClearBtn = document.getElementById('search-clear-btn');
+
             if (searchInput && suggestionsDropdown) {
+                const updateClearBtnVisibility = () => {
+                    if (searchClearBtn) {
+                        if (searchInput.value.length > 0) {
+                            searchClearBtn.classList.remove('hidden');
+                        } else {
+                            searchClearBtn.classList.add('hidden');
+                        }
+                    }
+                };
+
                 searchInput.addEventListener('input', (e) => {
+                    updateClearBtnVisibility();
                     const query = e.target.value.trim().toLowerCase();
                     if (!query) {
                         suggestionsDropdown.classList.add('hidden');
@@ -1687,6 +1697,7 @@ ${safePdfWorker}
                             item.addEventListener('click', () => {
                                 goToPage(s.pageIndex);
                                 searchInput.value = '';
+                                updateClearBtnVisibility();
                                 suggestionsDropdown.classList.add('hidden');
                             });
                             suggestionsDropdown.appendChild(item);
@@ -1696,6 +1707,18 @@ ${safePdfWorker}
                         suggestionsDropdown.classList.add('hidden');
                     }
                 });
+
+                if (searchClearBtn) {
+                    const clearAction = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        searchInput.value = '';
+                        updateClearBtnVisibility();
+                        suggestionsDropdown.classList.add('hidden');
+                    };
+                    searchClearBtn.addEventListener('click', clearAction);
+                    searchClearBtn.addEventListener('pointerdown', clearAction);
+                }
 
                 searchInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
@@ -1707,6 +1730,7 @@ ${safePdfWorker}
                         if (!isNaN(pageNum) && pageNum > 0 && pageNum <= totalPages) {
                             goToPage(pageNum - 1);
                             searchInput.value = '';
+                            updateClearBtnVisibility();
                             suggestionsDropdown.classList.add('hidden');
                             return;
                         }
@@ -1716,16 +1740,20 @@ ${safePdfWorker}
                         if (matches.length > 0) {
                             goToPage(matches[0].pageIndex);
                             searchInput.value = '';
+                            updateClearBtnVisibility();
                             suggestionsDropdown.classList.add('hidden');
                         }
                     }
                 });
 
-                document.addEventListener('click', (e) => {
-                    if (!searchInput.contains(e.target) && !suggestionsDropdown.contains(e.target)) {
+                const dismissDropdown = (e) => {
+                    const searchContainer = document.querySelector('.search-container');
+                    if (searchContainer && !searchContainer.contains(e.target)) {
                         suggestionsDropdown.classList.add('hidden');
                     }
-                });
+                };
+                document.addEventListener('click', dismissDropdown);
+                document.addEventListener('pointerdown', dismissDropdown);
             }
 
             const vp = document.getElementById('flipbook-viewport');
